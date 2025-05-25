@@ -180,27 +180,27 @@ async function signUp() {
     return
   }
 
-  try {
+    try {
     const response = await axios.post('http://localhost:8000/accounts/registration/', {
-      username: username.value,
+        username: username.value,
       nickname: nickname.value,
-      email: email.value,
+        email: email.value,
       password1: password1.value,
       password2: password2.value,
       age: age.value,
-    })
+      })
 
-    alert('회원가입이 완료되었습니다!')
-    router.push('/login')
-  } catch (error) {
-    if (error.response) {
+      alert('회원가입이 완료되었습니다!')
+      router.push('/login')
+    } catch (error) {
+      if (error.response) {
       console.log('Error response:', error.response.data)
       const errorMessage = error.response.data.detail || 
                          Object.values(error.response.data).flat().join('\n')
       alert(`회원가입 실패: ${errorMessage}`)
-    } else {
-      alert('서버에 연결할 수 없습니다.')
-    }
+      } else {
+        alert('서버에 연결할 수 없습니다.')
+      }
   }
 }
 </script>

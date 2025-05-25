@@ -9,6 +9,8 @@
   <nav class="navbar-row menu-row">
     <ul class="nav-links">
       <li><router-link to="/deposit">예금비교</router-link></li>
+      <li><router-link to="/spot">현물비교</router-link></li>
+      <li><router-link to="/stock-voice">주식의 소리</router-link></li>
       <li><router-link to="/calendar">캘린더</router-link></li>
       <li><router-link to="/community">커뮤니티</router-link></li>
       <li><router-link to="/board">게시판</router-link></li>
@@ -30,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -54,6 +56,9 @@ const checkLoginStatus = async () => {
       console.error('Failed to get user info:', error)
       handleLogout()
     }
+  } else {
+    isLoggedIn.value = false
+    userNickname.value = ''
   }
 }
 

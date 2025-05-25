@@ -3,16 +3,17 @@
     <h2>마이페이지</h2>
     <div class="profile-section" v-if="userData">
       <div class="profile-header">
-        <div class="profile-image-container">
-          <img 
-            :src="profileImageUrl" 
-            alt="프로필 이미지" 
-            class="profile-img"
-            @click="triggerFileInput"
-          />
-          <div class="image-overlay">
-            <span>클릭하여 변경</span>
+        <div class="profile-image-section">
+          <div class="profile-image-container">
+            <img 
+              :src="profileImageUrl" 
+              alt="프로필 이미지" 
+              class="profile-img"
+            />
           </div>
+          <button @click="triggerFileInput" class="image-edit-btn">
+            프로필 사진 수정
+          </button>
           <input 
             type="file" 
             ref="fileInput" 
@@ -129,7 +130,7 @@ const handleImageChange = async (event) => {
     await fetchUserData()
     alert('프로필 이미지가 업데이트되었습니다.')
   } catch (error) {
-    console.error('Failed to update profile image:', error)
+    console.error('Error details:', error.response?.data || error.message)
     alert('프로필 이미지 업데이트에 실패했습니다.')
   }
 }
@@ -194,16 +195,21 @@ onMounted(() => {
 
 .profile-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
 }
 
+.profile-image-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-right: 2rem;
+}
+
 .profile-image-container {
-  position: relative;
   width: 120px;
   height: 120px;
-  margin-right: 2rem;
-  cursor: pointer;
 }
 
 .profile-img {
@@ -211,31 +217,27 @@ onMounted(() => {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #eee;
 }
 
-.image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.image-overlay span {
+.image-edit-btn {
+  background-color: #2a388f;
   color: white;
-  font-size: 0.8rem;
-  text-align: center;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
 }
 
-.profile-image-container:hover .image-overlay {
-  opacity: 1;
+.image-edit-btn:hover {
+  background-color: #1a287f;
+}
+
+.profile-info {
+  flex: 1;
 }
 
 .profile-info h3 {

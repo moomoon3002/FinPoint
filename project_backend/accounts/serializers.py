@@ -51,8 +51,8 @@ class CustomRegisterSerializer(RegisterSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'nickname', 'age', 'salary', 'profile_image')
-        read_only_fields = ('username',)
+        fields = ('id', 'username', 'nickname', 'age', 'salary', 'profile_image')
+        read_only_fields = ('id', 'username',)
 
     def validate_nickname(self, value):
         user = self.context['request'].user
@@ -69,3 +69,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if value is not None and value < 0:
             raise serializers.ValidationError("연봉은 0 이상이어야 합니다.")
         return value
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'nickname', 'age', 'salary', 'profile_image')
+        read_only_fields = ('id', 'username')

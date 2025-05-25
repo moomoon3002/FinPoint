@@ -39,11 +39,11 @@ async function login() {
     // 토큰 저장
     localStorage.setItem('token', response.data.key)
     
-    // 로그인 성공 후 메인 페이지로 이동
-    router.push('/')
+    // 로그인 성공 메시지
+    alert('로그인 성공!')
     
-    // 페이지 새로고침하여 네비게이션 바 상태 업데이트
-    window.location.reload()
+    // 메인 페이지로 이동 (라우터의 name 속성 사용)
+    router.push({ name: 'Main' })
   } catch (error) {
     if (error.response) {
       alert(error.response.data.non_field_errors?.[0] || '로그인에 실패했습니다.')
