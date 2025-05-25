@@ -47,3 +47,25 @@ class CustomRegisterSerializer(RegisterSerializer):
         
         adapter.save_user(request, user, self)
         return user
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'nickname', 'age', 'salary', 'profile_image')
+        read_only_fields = ('username',)
+
+    def validate_nickname(self, value):
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(nickname=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 닉네임입니다.")
+        return value
+
+    def validate_age(self, value):
+        if value is not None and (value < 0 or value > 150):
+            raise serializers.ValidationError("나이는 0에서 150 사이여야 합니다.")
+        return value
+
+    def validate_salary(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("연봉은 0 이상이어야 합니다.")
+        return value

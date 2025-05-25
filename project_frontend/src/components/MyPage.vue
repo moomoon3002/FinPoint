@@ -3,7 +3,24 @@
     <h2>마이페이지</h2>
     <div class="profile-section" v-if="userData">
       <div class="profile-header">
-        <img :src="userData.profile_img || '/default-profile.png'" alt="프로필 이미지" class="profile-img">
+        <div class="profile-image-container">
+          <img 
+            :src="profileImageUrl" 
+            alt="프로필 이미지" 
+            class="profile-img"
+            @click="triggerFileInput"
+          />
+          <div class="image-overlay">
+            <span>클릭하여 변경</span>
+          </div>
+          <input 
+            type="file" 
+            ref="fileInput" 
+            @change="handleImageChange" 
+            accept="image/*" 
+            style="display: none"
+          />
+        </div>
         <div class="profile-info">
           <h3>{{ userData.nickname }}</h3>
           <p>{{ userData.email }}</p>
@@ -56,16 +73,66 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 const userData = ref(null)
 const showEditForm = ref(false)
+const fileInput = ref(null)
 const editForm = ref({
   nickname: '',
   age: 0,
   salary: 0
 })
+
+const profileImageUrl = computed(() => {
+  if (userData.value?.profile_image) {
+    if (!userData.value.profile_image.startsWith('http')) {
+      return `http://localhost:8000${userData.value.profile_image}`
+    }
+    return userData.value.profile_image
+  }
+  return '/default-profile.png'
+})
+
+// 파일 입력 트리거
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+// 이미지 변경 처리
+const handleImageChange = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('파일 크기는 5MB를 초과할 수 없습니다.')
+    return
+  }
+
+  if (!file.type.startsWith('image/')) {
+    alert('이미지 파일만 업로드할 수 있습니다.')
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('profile_image', file)
+
+  try {
+    const token = localStorage.getItem('token')
+    await axios.patch('http://localhost:8000/accounts/user/', formData, {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    await fetchUserData()
+    alert('프로필 이미지가 업데이트되었습니다.')
+  } catch (error) {
+    console.error('Failed to update profile image:', error)
+    alert('프로필 이미지 업데이트에 실패했습니다.')
+  }
+}
 
 // 사용자 정보 가져오기
 const fetchUserData = async () => {
@@ -131,12 +198,44 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
+.profile-image-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-right: 2rem;
+  cursor: pointer;
+}
+
 .profile-img {
-  width: 100px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 2rem;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.image-overlay span {
+  color: white;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.profile-image-container:hover .image-overlay {
+  opacity: 1;
 }
 
 .profile-info h3 {
@@ -174,7 +273,7 @@ onMounted(() => {
 
 .edit-btn {
   padding: 0.5rem 1.5rem;
-  background-color: #4CAF50;
+  background-color: #2a388f;
   color: white;
   border: none;
   border-radius: 4px;
@@ -182,7 +281,7 @@ onMounted(() => {
 }
 
 .edit-btn:hover {
-  background-color: #45a049;
+  background-color: #1a287f;
 }
 
 .edit-form {
@@ -222,12 +321,12 @@ onMounted(() => {
 }
 
 .save-btn {
-  background-color: #4CAF50;
+  background-color: #2a388f;
   color: white;
 }
 
 .save-btn:hover {
-  background-color: #45a049;
+  background-color: #1a287f;
 }
 
 .cancel-btn {

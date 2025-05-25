@@ -6,7 +6,10 @@
         <input type="text" placeholder="USER NAME" v-model="username" />
         <input type="password" placeholder="PASSWORD" v-model="password" />
         <button class="login-btn" @click="login">Log In</button>
-        <a href="#" class="join">회원가입</a>
+        <div class="signup-section">
+          <p class="signup-text">회원이 아니신가요?</p>
+          <router-link to="/signup" class="signup-link">회원가입</router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -50,3 +53,85 @@ async function login() {
   }
 }
 </script>
+
+<style scoped>
+.login-page-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f8fe;
+}
+
+.login-center {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+}
+
+.login-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: none;
+  border-color: #2a388f;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: #2a388f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.login-btn:hover {
+  background: #1a287f;
+}
+
+.signup-section {
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.signup-text {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.signup-link {
+  color: #2a388f;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}
+</style>

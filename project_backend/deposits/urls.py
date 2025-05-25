@@ -1,7 +1,10 @@
-from django.urls import path
-from .views import DepositProductListView,DepositProductDetailView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'products', views.DepositProductViewSet)
 
 urlpatterns = [
-    path('api/', DepositProductListView.as_view(), name='deposit-list'),
-    path('api/<str:deposit_ID>/', DepositProductDetailView.as_view(), name='deposit-detail'),
+    path('', include(router.urls)),
 ]
