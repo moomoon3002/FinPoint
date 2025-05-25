@@ -1,0 +1,201 @@
+/* 1. 전체 초기화 */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* 2. 바디 */
+body {
+  min-height: 100vh;
+  background: #f5f8fe;
+  font-family: 'Noto Sans KR', Arial, sans-serif;
+}
+
+/* 3. 네비게이션 2줄 구조 */
+.logo-row {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 18px 0 10px 0;
+  border-bottom: 1px solid #eaeaea;
+}
+.logo {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2a388c;
+  letter-spacing: 2px;
+}
+
+.menu-row {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  border-bottom: 1px solid #eaeaea;
+  min-height: 48px;
+  position: relative;
+}
+
+/* 메뉴 4개를 가운데 정렬, 인증은 오른쪽 */
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  flex: 0 1 auto;
+}
+.menu-row .nav-links {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.auth-links {
+  display: flex;
+  gap: 18px;
+  font-size: 1rem;
+  color: #2a388c;
+  margin-left: auto;
+  z-index: 2;
+}
+.auth-links span {
+  cursor: pointer;
+}
+
+/* 4. 메인 랜딩 hero 영역 */
+.hero-section {
+  height: 70vh;
+  background: linear-gradient(135deg, #f5f8fe 0%, #e8f0ff 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
+
+/* 5. 은행 로고 중앙 가로 배치 + 애니메이션 */
+.floating-logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.logo-card {
+  width: 180px;
+  height: 180px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: floatBase 5s ease-in-out infinite;
+  position: relative;
+}
+
+.bank-logo-img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(42,56,140,0.12));
+}
+
+/* 공통 둥둥 떠다니는 애니메이션 */
+@keyframes floatBase {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+.floating-1 { animation-delay: 0s; }
+.floating-2 { animation-delay: 0.5s; }
+.floating-3 { animation-delay: 1s; }
+.floating-4 { animation-delay: 1.5s; }
+.floating-5 { animation-delay: 2s; }
+
+/* 6. START 버튼 */
+.start-button {
+  background: #2a388c;
+  color: white;
+  border: none;
+  padding: 18px 60px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(42, 56, 140, 0.13);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.start-button:hover {
+  background: #1a276c;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(42, 56, 140, 0.19);
+}
+.start-button .arrow {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+.start-button:hover .arrow {
+  transform: translateX(5px);
+}
+
+/* 7. 반응형 */
+@media (max-width: 768px) {
+  .logo-card {
+    width: 80px;
+    height: 80px;
+  }
+  .bank-logo-img {
+    width: 60px;
+    height: 60px;
+  }
+  .floating-logos {
+    gap: 16px;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .start-button {
+    font-size: 1rem;
+    padding: 12px 28px;
+  }
+  .logo-row .logo {
+    font-size: 1.3rem;
+  }
+  .menu-row {
+    padding: 0 10px;
+  }
+}
+
+.nav-links a,
+.auth-links a,
+.logo-link {
+  text-decoration: none !important;
+  color: #222 !important;
+}
+.nav-links .router-link-active,
+.nav-links .router-link-exact-active {
+  color: #222 !important;
+  font-weight: inherit;
+}
+.logo-link:visited,
+.logo-link:active {
+  color: inherit;
+  text-decoration: none;
+}
