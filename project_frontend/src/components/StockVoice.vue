@@ -1,59 +1,77 @@
 <template>
-  <div class="stock-voice">
-    <h2>주식의 소리</h2>
-    
+  <div class="stock-voice-container">
     <div class="search-section">
       <div class="search-box">
-        <input 
-          type="text" 
-          v-model="searchQuery" 
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="회사명을 입력하세요"
           @keyup.enter="searchStock"
-          placeholder="주식 종목명을 입력하세요"
-        >
-        <button @click="searchStock" :disabled="loading">검색</button>
+        />
+        <button @click="searchStock" :disabled="isLoading">
+          {{ isLoading ? '분석 중...' : '분석' }}
+        </button>
       </div>
     </div>
 
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>데이터를 분석중입니다...</p>
-    </div>
-
-    <div v-else-if="error" class="error">
-      {{ error }}
-    </div>
-
-    <div v-else-if="stockData" class="stock-info">
+    <div v-if="stockData" class="stock-info-section">
       <div class="stock-header">
-        <h3>{{ stockData.name }}</h3>
-        <span class="stock-code">{{ stockData.code }}</span>
+        <h2>{{ stockData.company_name }}</h2>
+        <p class="stock-code">{{ stockData.stock_code }}</p>
       </div>
 
-      <div class="price-info">
-        <div class="current-price">
-          <span class="price">{{ formatPrice(stockData.currentPrice) }}원</span>
-          <span :class="['change', stockData.changeDirection]">
-            {{ stockData.changeDirection === 'up' ? '▲' : '▼' }}
-            {{ formatPrice(Math.abs(stockData.priceChange)) }}원
-            ({{ stockData.changePercent }}%)
+      <div v-if="stockData.price_info" class="price-info">
+        <div class="price-item">
+          <span class="label">현재가</span>
+          <span class="value">{{ stockData.price_info.current_price }}</span>
+        </div>
+        <div class="price-item">
+          <span class="label">등락률</span>
+          <span class="value" :class="getChangeRateClass(stockData.price_info.change_rate)">
+            {{ stockData.price_info.change_rate }}
           </span>
+        </div>
+        <div class="price-item">
+          <span class="label">거래량</span>
+          <span class="value">{{ stockData.price_info.volume }}</span>
         </div>
       </div>
 
-      <div class="market-summary">
-        <h4>시장 분위기</h4>
-        <p>{{ stockData.aiAnalysis }}</p>
+      <div class="analysis-section">
+        <h3>ChatGPT 분석</h3>
+        <p>{{ stockData.chatgpt_response }}</p>
       </div>
 
       <div class="comments-section">
-        <h4>투자자 댓글</h4>
-        <div class="comments-list">
-          <div v-for="comment in stockData.comments" :key="comment.id" class="comment">
-            <p class="comment-text">{{ comment.text }}</p>
-            <span class="comment-time">{{ comment.time }}</span>
+        <h3>실시간 댓글</h3>
+        <div v-if="stockData.comments && stockData.comments.length > 0" class="comments-list">
+          <div v-for="(comment, index) in stockData.comments" :key="index" class="comment-item">
+            <p>{{ comment }}</p>
+            <button @click="deleteComment(index)" class="delete-btn">삭제</button>
           </div>
         </div>
+        <p v-else>댓글이 없습니다.</p>
       </div>
+    </div>
+
+    <div v-if="youtubeVideos.length" class="youtube-section">
+      <h3>관련 유튜브 영상</h3>
+      <div class="youtube-list">
+        <div v-for="video in youtubeVideos" :key="video.id.videoId" class="youtube-item">
+          <iframe
+            width="320"
+            height="180"
+            :src="`https://www.youtube.com/embed/${video.id.videoId}`"
+            frameborder="0"
+            allowfullscreen
+          ></iframe>
+          <div>{{ video.snippet.title }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="errorMessage" class="error-message">
+      {{ errorMessage }}
     </div>
   </div>
 </template>
@@ -61,258 +79,249 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
-import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
-  dangerouslyAllowBrowser: true
-})
-
-// 상태 관리
 const searchQuery = ref('')
-const loading = ref(false)
-const error = ref(null)
 const stockData = ref(null)
-const isApiKeyMissing = ref(!import.meta.env.VITE_OPENAI_API_KEY)
+const youtubeVideos = ref([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// 가격 포맷팅
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('ko-KR').format(price)
-}
-
-// 주식 검색 및 데이터 수집
 const searchStock = async () => {
   if (!searchQuery.value.trim()) {
-    error.value = '종목명을 입력해주세요.'
+    errorMessage.value = '회사명을 입력해주세요.'
     return
   }
 
-  loading.value = true
-  error.value = null
-  stockData.value = null
+  isLoading.value = true
+  errorMessage.value = ''
 
   try {
-    // 백엔드 API를 통해 토스증권 데이터 가져오기
-    const response = await axios.get(`http://localhost:8000/api/stock/info`, {
-      params: {
-        query: searchQuery.value
-      }
+    const response = await axios.post('http://localhost:8000/crawlings/', {
+      company_name: searchQuery.value
     })
 
-    if (!response.data) {
-      throw new Error('종목을 찾을 수 없습니다.')
+    if (response.data.error_message) {
+      errorMessage.value = response.data.error_message
+    } else {
+      stockData.value = {
+        company_name: response.data.company_name,
+        stock_code: response.data.stock_code,
+        comments: response.data.comments,
+        chatgpt_response: response.data.chatgpt_response,
+        price_info: response.data.price_info
+      }
+      await searchYoutubeVideos(searchQuery.value)
     }
-
-    const { stockInfo, comments } = response.data
-
-    // AI 분석 수행
-    const aiAnalysis = await analyzeMarketSentiment(stockInfo, comments)
-
-    stockData.value = {
-      name: stockInfo.name,
-      code: stockInfo.code,
-      currentPrice: stockInfo.price,
-      priceChange: stockInfo.change,
-      changePercent: stockInfo.changePercent,
-      changeDirection: stockInfo.change > 0 ? 'up' : 'down',
-      comments: comments,
-      aiAnalysis
-    }
-  } catch (err) {
-    console.error('Error fetching stock data:', err)
-    error.value = err.message || '데이터를 가져오는 중 오류가 발생했습니다.'
+  } catch (error) {
+    errorMessage.value = '분석 중 오류가 발생했습니다.'
+    console.error('Error:', error)
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 
-// AI 분석
-const analyzeMarketSentiment = async (stockInfo, comments) => {
-  if (isApiKeyMissing.value) {
-    return '⚠️ OpenAI API 키가 설정되지 않아 시장 분위기 분석을 할 수 없습니다.'
-  }
+const searchYoutubeVideos = async (query) => {
+  youtubeVideos.value = []
+  if (!query) return
+  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${encodeURIComponent(query + ' 주식')}+분석&key=${apiKey}`
 
   try {
-    const prompt = `
-      주식 종목: ${stockInfo.name}
-      현재가: ${stockInfo.price}원
-      전일대비: ${stockInfo.change}원 (${stockInfo.changePercent}%)
-      
-      최근 댓글들:
-      ${comments.map(c => c.text).join('\n')}
-      
-      위 정보를 바탕으로 현재 시장 분위기를 한 줄로 분석해주세요.
-    `
+    const res = await axios.get(url)
+    youtubeVideos.value = res.data.items
+  } catch (e) {
+    errorMessage.value = '유튜브 동영상 검색 중 오류가 발생했습니다.'
+    console.error('유튜브 API 오류:', e)
+  }
+}
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-3.5-turbo",
+const deleteComment = async (index) => {
+  if (!stockData.value) return
+
+  try {
+    const response = await axios.post('http://localhost:8000/crawlings/delete-comment/', {
+      stock_code: stockData.value.stock_code,
+      comment_index: index
     })
 
-    return completion.choices[0].message.content
+    if (response.data.error_message) {
+      errorMessage.value = response.data.error_message
+    } else {
+      stockData.value = {
+        company_name: response.data.company_name,
+        stock_code: response.data.stock_code,
+        comments: response.data.comments,
+        chatgpt_response: response.data.chatgpt_response,
+        price_info: response.data.price_info
+      }
+    }
   } catch (error) {
-    console.error('Error analyzing with AI:', error)
-    return '시장 분위기 분석을 실패했습니다.'
+    errorMessage.value = '댓글 삭제 중 오류가 발생했습니다.'
+    console.error('Error:', error)
   }
+}
+
+const getChangeRateClass = (changeRate) => {
+  if (!changeRate) return ''
+  const rate = parseFloat(changeRate.replace('%', ''))
+  if (rate > 0) return 'positive'
+  if (rate < 0) return 'negative'
+  return ''
 }
 </script>
 
 <style scoped>
-.stock-voice {
+.stock-voice-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-h2 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 2rem;
+  padding: 20px;
 }
 
 .search-section {
-  margin-bottom: 2rem;
+  margin-bottom: 30px;
 }
 
 .search-box {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
+  gap: 10px;
 }
 
 .search-box input {
-  width: 300px;
-  padding: 0.5rem 1rem;
-  border: 2px solid #ddd;
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
 }
 
 .search-box button {
-  padding: 0.5rem 1.5rem;
-  background-color: #007bff;
+  padding: 10px 20px;
+  background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
 }
 
 .search-box button:disabled {
-  background-color: #ccc;
+  background-color: #cccccc;
   cursor: not-allowed;
 }
 
-.loading {
-  text-align: center;
-  padding: 2rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error {
-  color: #dc3545;
-  text-align: center;
-  padding: 1rem;
-  background-color: #f8d7da;
-  border-radius: 4px;
-  margin: 1rem 0;
-}
-
-.stock-info {
-  background: white;
-  padding: 2rem;
+.stock-info-section {
+  background-color: white;
   border-radius: 8px;
+  padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stock-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
-.stock-header h3 {
+.stock-header h2 {
   margin: 0;
-  font-size: 1.5rem;
+  color: #333;
 }
 
 .stock-code {
   color: #666;
-  font-size: 1rem;
+  margin: 5px 0;
 }
 
 .price-info {
-  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
 }
 
-.current-price {
-  font-size: 2rem;
+.price-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.price-item .label {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.price-item .value {
+  font-size: 1.2em;
   font-weight: bold;
 }
 
-.change {
-  font-size: 1.2rem;
-  margin-left: 1rem;
+.price-item .value.positive {
+  color: #4CAF50;
 }
 
-.change.up {
-  color: #dc3545;
+.price-item .value.negative {
+  color: #f44336;
 }
 
-.change.down {
-  color: #198754;
+.analysis-section {
+  margin-bottom: 30px;
 }
 
-.market-summary {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 2rem;
-}
-
-.market-summary h4 {
-  margin: 0 0 0.5rem;
+.analysis-section h3 {
   color: #333;
+  margin-bottom: 10px;
 }
 
 .comments-section {
-  margin-top: 2rem;
+  margin-top: 30px;
 }
 
-.comments-section h4 {
-  margin-bottom: 1rem;
+.comments-section h3 {
+  color: #333;
+  margin-bottom: 15px;
 }
 
-.comment {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.comment:last-child {
-  border-bottom: none;
+.comment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 
-.comment-text {
-  margin: 0 0 0.5rem;
+.comment-item p {
+  margin: 0;
+  flex: 1;
 }
 
-.comment-time {
-  color: #666;
-  font-size: 0.9rem;
+.delete-btn {
+  padding: 5px 10px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
 }
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+.error-message {
+  color: #f44336;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.youtube-section { margin-top: 30px; }
+.youtube-list { display: flex; gap: 20px; }
+.youtube-item { flex: 1; }
 </style> 

@@ -46,6 +46,7 @@
       </div>
     </div>
 
+    <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div id="map" class="map-container"></div>
 
     <ul v-if="banks.length" class="bank-list">
@@ -79,38 +80,35 @@ const markers = ref([])
 const infowindow = ref(null)
 const ps = ref(null)
 const isMapReady = ref(false)
+const errorMessage = ref('')
 
 // .env에서 VITE_ 접두사로 읽어 옵니다.
-const KAKAO_MAP_API_KEY = import.meta.env.VITE_KAKAO_MAP_API_KEY
+const mapApiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY
+
+console.log('BankFinder.vue에서 사용하는 Kakao Map API Key:', mapApiKey)
 
 // Kakao SDK 동적 로드
 function loadKakaoSDK() {
   return new Promise((resolve, reject) => {
-    if (!KAKAO_MAP_API_KEY) {
-      return reject(new Error('카카오맵 JS 키가 없습니다. .env 파일을 확인하세요.'))
+    if (!mapApiKey) {
+      errorMessage.value = '카카오맵 JS 키가 없습니다. .env 파일을 확인하세요.'
+      return reject(new Error(errorMessage.value))
     }
-
-    // 이미 로드된 경우
     if (window.kakao && window.kakao.maps) {
       return resolve()
     }
-
-    console.log('🔑 Kakao JS Key:', KAKAO_MAP_API_KEY)
-
+    if (document.getElementById('kakao-map-sdk')) {
+      document.getElementById('kakao-map-sdk').onload = () => resolve()
+      return
+    }
     const script = document.createElement('script')
-    // 반드시 https:// 를 명시해야 https 요청으로 보냅니다.
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&libraries=services`
-    script.async = true
-
-    script.onload = () => {
-      console.log('카카오맵 SDK 스크립트 로드 완료')
-      resolve()
-    }
-
+    script.id = 'kakao-map-sdk'
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${mapApiKey}&autoload=false&libraries=services`
+    script.onload = () => resolve()
     script.onerror = () => {
-      reject(new Error('카카오맵 SDK 로드 실패 (401/403 확인 필요)'))
+      errorMessage.value = '카카오맵 SDK 로드 실패 (401/403: 키/도메인 확인 필요)'
+      reject(new Error(errorMessage.value))
     }
-
     document.head.appendChild(script)
   })
 }
@@ -119,7 +117,8 @@ function loadKakaoSDK() {
 function initMap() {
   const el = document.getElementById('map')
   if (!el || !window.kakao || !window.kakao.maps) {
-    throw new Error('지도 초기화 불가: SDK 준비 확인 필요')
+    errorMessage.value = '지도 초기화 불가: SDK 준비 확인 필요'
+    return
   }
 
   map.value = new window.kakao.maps.Map(el, {
@@ -181,7 +180,7 @@ function searchBanks() {
         })
       }
     } else {
-      alert('검색 오류: ' + status)
+      errorMessage.value = '검색 오류: ' + status
     }
   })
 }
@@ -189,7 +188,7 @@ function searchBanks() {
 // 주변 은행 검색 (현재 위치 기반)
 function findNearbyBanks() {
   if (!isMapReady.value || !navigator.geolocation) {
-    alert('위치 권한이 필요합니다.')
+    errorMessage.value = '위치 권한이 필요합니다.'
     return
   }
   navigator.geolocation.getCurrentPosition(
@@ -210,14 +209,14 @@ function findNearbyBanks() {
               banks.value.push(p)
             })
           } else {
-            alert('주변 검색 실패: ' + status)
+            errorMessage.value = '주변 검색 실패: ' + status
           }
         },
         { location: loc, radius: 5000, sort: window.kakao.maps.services.SortBy.DISTANCE }
       )
     },
     () => {
-      alert('위치 정보를 가져올 수 없습니다.')
+      errorMessage.value = '위치 정보를 가져올 수 없습니다.'
     }
   )
 }
@@ -236,12 +235,11 @@ function selectBank(bank) {
 
 onMounted(async () => {
   try {
-    console.log('카카오맵 초기화 시작...')
+    errorMessage.value = ''
     await loadKakaoSDK()
-    initMap()
+    window.kakao.maps.load(initMap)
   } catch (err) {
-    console.error('카카오맵 초기화 실패:', err)
-    alert(`카카오맵 초기화 실패: ${err.message}\n키와 도메인 설정을 확인해주세요.`)
+    errorMessage.value = err.message
   }
 })
 
@@ -261,9 +259,10 @@ onUnmounted(() => {
 .search-button,
 .nearby-button { padding: 8px 12px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer; }
 .nearby-button { background: #28a745; }
-.map-container { flex: 1; margin-bottom: 10px; border-radius: 4px; overflow: hidden; }
+.map-container { flex: 1; margin-bottom: 10px; border-radius: 4px; overflow: hidden; min-height: 400px; }
 .bank-list { max-height: 200px; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
 .bank-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
 .bank-item:hover { background: #f9f9f9; }
 .bank-distance { color: #28a745; margin-top: 4px; display: block; }
+.error-message { color: #f44336; margin-bottom: 10px; font-weight: bold; }
 </style>

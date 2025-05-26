@@ -12,7 +12,7 @@
       <li><router-link to="/spot">현물비교</router-link></li>
       <li><router-link to="/stock-voice">주식의 소리</router-link></li>
       <li><router-link to="/calendar">캘린더</router-link></li>
-      <li><router-link to="/community">은행찾기</router-link></li>
+      <li><router-link to="/bank-finder">은행찾기</router-link></li>
       <li><router-link to="/board">게시판</router-link></li>
     </ul>
     <div class="auth-links">
@@ -32,17 +32,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+const route = useRoute()
+
 const isLoggedIn = ref(false)
 const userNickname = ref('')
 
-// 로그인 상태 확인
+// 로그인 상태 확인 함수
 const checkLoginStatus = async () => {
   const token = localStorage.getItem('token')
+  console.log('[checkLoginStatus] 호출됨')
+  console.log('[checkLoginStatus] 저장된 토큰:', token)
+
   if (token) {
     try {
       const response = await axios.get('http://localhost:8000/accounts/user/', {
@@ -50,20 +55,23 @@ const checkLoginStatus = async () => {
           Authorization: `Token ${token}`
         }
       })
+      console.log('[checkLoginStatus] 사용자 정보:', response.data)
       isLoggedIn.value = true
       userNickname.value = response.data.nickname
     } catch (error) {
-      console.error('Failed to get user info:', error)
+      console.error('[checkLoginStatus] 사용자 정보 가져오기 실패:', error)
       handleLogout()
     }
   } else {
+    console.log('[checkLoginStatus] 토큰 없음')
     isLoggedIn.value = false
     userNickname.value = ''
   }
 }
 
-// 로그아웃 처리
+// 로그아웃 처리 함수
 const handleLogout = async () => {
+  console.log('[handleLogout] 로그아웃 시도')
   try {
     const token = localStorage.getItem('token')
     if (token) {
@@ -72,10 +80,12 @@ const handleLogout = async () => {
           Authorization: `Token ${token}`
         }
       })
+      console.log('[handleLogout] 로그아웃 API 호출 성공')
     }
   } catch (error) {
-    console.error('Logout error:', error)
+    console.error('[handleLogout] 로그아웃 API 호출 실패:', error)
   } finally {
+    console.log('[handleLogout] 로컬 토큰 제거 및 상태 초기화')
     localStorage.removeItem('token')
     isLoggedIn.value = false
     userNickname.value = ''
@@ -85,6 +95,13 @@ const handleLogout = async () => {
 
 // 컴포넌트 마운트 시 로그인 상태 확인
 onMounted(() => {
+  console.log('[NavBar] 컴포넌트 마운트됨')
+  checkLoginStatus()
+})
+
+// 라우터 변경 시 로그인 상태 재확인
+watch(route, () => {
+  console.log('[NavBar] 라우터 변경 감지됨:', route.fullPath)
   checkLoginStatus()
 })
 </script>

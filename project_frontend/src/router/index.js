@@ -10,6 +10,7 @@ import Board from '../components/Board.vue'
 import BoardDetail from '../components/BoardDetail.vue'
 import BoardWrite from '../components/BoardWrite.vue'
 import BoardEdit from '../components/BoardEdit.vue'
+import BankFinder from '../components/BankFinder.vue'
 
 const routes = [
   { path: '/', name: 'Main', component: MainPage },
@@ -19,6 +20,7 @@ const routes = [
   { path: '/deposit', name: 'Deposit', component: DepositCompare },
   { path: '/spot', name: 'Spot', component: SpotCompare },
   { path: '/stock-voice', name: 'StockVoice', component: StockVoice },
+  { path: '/bank-finder', name: 'BankFinder', component: BankFinder },
   { path: '/board', name: 'Board', component: Board },
   { path: '/board/:id', name: 'BoardDetail', component: BoardDetail },
   { path: '/board/write', name: 'BoardWrite', component: BoardWrite },
@@ -32,7 +34,7 @@ const router = createRouter({
 
 // 로그인이 필요한 페이지에 대한 네비게이션 가드
 router.beforeEach((to, from, next) => {
-  const publicPages = ['/', '/login', '/signup', '/deposit', '/spot', '/stock-voice', '/board']
+  const publicPages = ['/', '/login', '/signup', '/deposit', '/spot', '/stock-voice', '/bank-finder', '/board']
   const authRequired = !publicPages.includes(to.path)
   const token = localStorage.getItem('token')
 

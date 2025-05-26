@@ -30,4 +30,5 @@ urlpatterns = [
     path('accounts/registration/', include('dj_rest_auth.registration.urls')),
     path('metals/', include('precious_metals.urls')),
     path('api/stock/', include('stocks.urls')),
+    path('crawlings/', include('crawlings.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
