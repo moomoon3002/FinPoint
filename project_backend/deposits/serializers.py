@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DepositProduct, DepositOption
+from .models import DepositProduct, DepositOption, FavoriteDeposit
 
 class DepositOptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,3 +17,11 @@ class DepositProductSerializer(serializers.ModelSerializer):
                  'spcl_cnd', 'join_deny', 'join_member', 'etc_note', 
                  'max_limit', 'dcls_strt_day', 'dcls_end_day', 
                  'fin_co_subm_day', 'options']
+
+class FavoriteDepositSerializer(serializers.ModelSerializer):
+    deposit = DepositProductSerializer(read_only=True)
+    
+    class Meta:
+        model = FavoriteDeposit
+        fields = ['id', 'deposit', 'created_at']
+        read_only_fields = ['user']

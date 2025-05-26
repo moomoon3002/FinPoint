@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.conf import settings
 from openai import OpenAI
@@ -13,11 +13,17 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from .models import StockData
+from .models import StockData, UserStockInterest
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .serializers import StockDataSerializer, UserStockInterestSerializer
+import yfinance as yf
+import json
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -350,6 +356,7 @@ def analyze_comments(comments, company_name):
     return "댓글을 찾을 수 없습니다."
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def index(request):
     driver = None
     company_name = request.data.get('company_name', '').strip().lower()
@@ -366,6 +373,15 @@ def index(request):
         ).first()
 
         if existing_data:
+            # 기존 데이터가 있어도 관심 주식으로 등록
+            UserStockInterest.objects.update_or_create(
+                user=request.user,
+                stock_code=existing_data.stock_code,
+                defaults={
+                    'company_name': existing_data.company_name,
+                    'last_price': float(json.loads(existing_data.price_info)['current_price']),
+                }
+            )
             return Response({
                 'company_name': existing_data.company_name,
                 'stock_code': existing_data.stock_code,
@@ -398,6 +414,16 @@ def index(request):
             price_info=price_info
         )
         stock_data.save()
+
+        # 관심 주식으로 등록
+        UserStockInterest.objects.update_or_create(
+            user=request.user,
+            stock_code=stock_code,
+            defaults={
+                'company_name': company_name,
+                'last_price': float(price_info['current_price']),
+            }
+        )
 
         return Response({
             'company_name': company_name,
@@ -602,4 +628,51 @@ def get_chart_data(driver):
         return chart_data
         
     except Exception as e:
-        raise Exception(f'차트 데이터 추출 중 오류 발생: {str(e)}') 
+        raise Exception(f'차트 데이터 추출 중 오류 발생: {str(e)}')
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_stock_voice(request):
+    try:
+        company_name = request.data.get('company_name')
+        if not company_name:
+            return Response({'error': '회사명이 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 주식 정보 가져오기
+        stock_data = get_stock_info(company_name)
+        if not stock_data:
+            return Response({'error': '주식 정보를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 관심 주식으로 자동 저장
+        UserStockInterest.objects.update_or_create(
+            user=request.user,
+            stock_code=stock_data.stock_code,
+            defaults={
+                'company_name': stock_data.company_name,
+                'last_price': float(json.loads(stock_data.price_info)['현재가'].replace(',', '')),
+            }
+        )
+
+        serializer = StockDataSerializer(stock_data)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_stock_interests(request):
+    """사용자의 관심 주식 목록을 반환합니다."""
+    interests = UserStockInterest.objects.filter(user=request.user)
+    serializer = UserStockInterestSerializer(interests, many=True)
+    return Response(serializer.data)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_stock_interest(request, stock_code):
+    """특정 관심 주식을 삭제합니다."""
+    try:
+        interest = UserStockInterest.objects.get(user=request.user, stock_code=stock_code)
+        interest.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except UserStockInterest.DoesNotExist:
+        return Response({'error': '관심 주식을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND) 
