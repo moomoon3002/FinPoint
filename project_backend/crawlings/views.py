@@ -15,6 +15,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from .models import StockData
 import time
+import os
+from datetime import datetime
 
 # Selenium 기본 설정
 chrome_options = Options()
@@ -27,17 +29,23 @@ chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 chrome_options.add_argument("--window-size=800,600")
 service = Service(ChromeDriverManager().install())
 
-# OpenAI 클라이언트
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+# OpenAI API 키 설정
+api_key = settings.OPENAI_API_KEY or os.getenv('OPENAI_API_KEY')
+if not api_key:
+    raise ValueError("OpenAI API key is not set. Please set OPENAI_API_KEY in your environment variables or settings.")
 
-def ask_comment(prompt, model="gpt-4"):
+client = OpenAI(api_key=api_key)
+
+def ask_comment(prompt, model="gpt-3.5-turbo"):
     try:
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": "You are a helpful assistant specialized in analyzing stock market trends and sentiment. Please provide your analysis in Korean."},
                 {"role": "user", "content": prompt},
             ],
+            temperature=0.7,
+            max_tokens=500
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -53,6 +61,7 @@ def get_stock_price_and_trend(driver):
             ))
         )
         current_price = current_price_element.text.strip()
+        current_price = ''.join(filter(str.isdigit, current_price))
 
         # 등락률 정보 가져오기
         change_rate_element = WebDriverWait(driver, 5).until(
@@ -62,6 +71,23 @@ def get_stock_price_and_trend(driver):
             ))
         )
         change_rate = change_rate_element.text.strip()
+
+        # 가격 변동 정보 가져오기
+        price_change_element = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                '//*[@id="__next"]/div[1]/div[1]/main/div/div/div/div[3]/div/div[1]/div[1]/div[2]/span[2]'
+            ))
+        )
+        price_change = price_change_element.text.strip()
+        price_change = ''.join(filter(str.isdigit, price_change))
+        if "+" in price_change_element.text:
+            price_change = int(price_change)
+        else:
+            price_change = -int(price_change)
+
+        # 날짜 정보 가져오기 (현재 날짜 사용)
+        current_date = datetime.now().strftime("%m월 %d일")
 
         # 거래량 정보 가져오기
         volume_element = WebDriverWait(driver, 5).until(
@@ -73,8 +99,10 @@ def get_stock_price_and_trend(driver):
         volume = volume_element.text.strip()
 
         return {
-            'current_price': current_price,
+            'current_price': int(current_price),
             'change_rate': change_rate,
+            'price_change': price_change,
+            'previous_date': current_date,
             'volume': volume
         }
     except Exception as e:
