@@ -93,8 +93,8 @@ START
     <div class="board-main-right">
       <div class="board-main-text">
         <span class="board-main-title">
-          다른 사람들은 어떻게<br />
-          자산관리 하는지 공유하고
+          자산관리 꿀팁을<br />
+          공유하고
         </span><br />
         <span class="board-main-sub">
           궁금한 점을 쉽게<br />
