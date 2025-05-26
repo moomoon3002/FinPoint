@@ -12,7 +12,7 @@
       <li><router-link to="/spot">현물비교</router-link></li>
       <li><router-link to="/stock-voice">주식의 소리</router-link></li>
       <li><router-link to="/calendar">캘린더</router-link></li>
-      <li><router-link to="/community">커뮤니티</router-link></li>
+      <li><router-link to="/community">은행찾기</router-link></li>
       <li><router-link to="/board">게시판</router-link></li>
     </ul>
     <div class="auth-links">
