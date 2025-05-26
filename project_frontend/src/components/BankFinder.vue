@@ -81,12 +81,12 @@ const ps = ref(null)
 const isMapReady = ref(false)
 
 // .env에서 VITE_ 접두사로 읽어 옵니다.
-const KAKAO_MAP_API_KEY = import.meta.env.VITE_KAKAO_MAP_API_KEY
+const mapApiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY
 
 // Kakao SDK 동적 로드
 function loadKakaoSDK() {
   return new Promise((resolve, reject) => {
-    if (!KAKAO_MAP_API_KEY) {
+    if (!mapApiKey) {
       return reject(new Error('카카오맵 JS 키가 없습니다. .env 파일을 확인하세요.'))
     }
 
@@ -95,12 +95,11 @@ function loadKakaoSDK() {
       return resolve()
     }
 
-    console.log('🔑 Kakao JS Key:', KAKAO_MAP_API_KEY)
+    console.log('🔑 Kakao JS Key:', mapApiKey)
 
     const script = document.createElement('script')
     // 반드시 https:// 를 명시해야 https 요청으로 보냅니다.
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&libraries=services`
-    script.async = true
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${mapApiKey}&autoload=false&libraries=services`
 
     script.onload = () => {
       console.log('카카오맵 SDK 스크립트 로드 완료')
