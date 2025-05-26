@@ -25,19 +25,16 @@
 
       <div class="price-info" v-if="stockData.price_info">
         <div class="current-price">
-          <h3>현재가</h3>
-          <p class="price-value">{{ formatPrice(stockData.price_info.current_price) }}<span class="currency">원</span></p>
-          <div class="price-change-info">
-            <p class="previous-date">{{ stockData.price_info.previous_date }}보다</p>
-            <p class="price-change" :class="getPriceChangeClass(stockData.price_info.change_rate)">
-              {{ formatPriceChange(stockData.price_info.price_change) }}원
-              ({{ stockData.price_info.change_rate }})
-            </p>
+          <div class="price-main">
+            <p class="price-value">{{ formatPrice(stockData.price_info.current_price) }}원</p>
+            <p class="price-usd">${{ formatUSD(stockData.price_info.current_price) }}</p>
           </div>
-        </div>
-        <div class="volume-section">
-          <h3>거래량</h3>
-          <p>{{ formatVolume(stockData.price_info.volume) }}</p>
+          <div class="price-change-info">
+            <p class="date-reference">{{ stockData.price_info.previous_date }}보다</p>
+            <div class="change-details" :class="getPriceChangeClass(stockData.price_info.change_text)">
+              <p>{{ stockData.price_info.change_text }}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -94,17 +91,20 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('ko-KR').format(price)
 }
 
-const formatVolume = (volume) => {
-  return new Intl.NumberFormat('ko-KR').format(volume)
+const formatUSD = (krwPrice) => {
+  if (!krwPrice) return '0.00'
+  // 환율은 실제로는 API를 통해 가져와야 하지만, 여기서는 예시로 1300원으로 고정
+  const exchangeRate = 1300
+  const usdPrice = krwPrice / exchangeRate
+  return usdPrice.toFixed(2)
 }
 
-const getPriceChangeClass = (changeRate) => {
-  if (!changeRate) return ''
-  const rate = parseFloat(changeRate.replace('%', ''))
+const getPriceChangeClass = (changeText) => {
+  if (!changeText) return ''
   return {
-    'price-up': rate > 0,
-    'price-down': rate < 0,
-    'price-neutral': rate === 0
+    'price-up': !changeText.includes('-'),
+    'price-down': changeText.includes('-'),
+    'price-neutral': changeText.includes('0원')
   }
 }
 
@@ -244,58 +244,54 @@ const deleteComment = async (index) => {
 }
 
 .price-info {
-  display: flex;
-  gap: 1rem;
   margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
 }
 
 .current-price {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-  background-color: #f8f9fa;
+  background-color: white;
+  padding: 1.5rem;
   border-radius: 8px;
-  flex: 2;
 }
 
-.current-price h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #666;
+.price-main {
+  margin-bottom: 1rem;
 }
 
 .price-value {
-  font-size: 2.5rem !important;
+  font-size: 2.5rem;
   font-weight: bold;
+  margin: 0;
   color: #333;
-  margin: 0.5rem 0;
-  display: flex;
-  align-items: baseline;
 }
 
-.currency {
+.price-usd {
   font-size: 1.2rem;
-  margin-left: 0.3rem;
   color: #666;
+  margin: 0.5rem 0 0 0;
 }
 
 .price-change-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 0.5rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+  margin-top: 1rem;
 }
 
-.previous-date {
-  font-size: 0.9rem;
+.date-reference {
   color: #666;
-  margin-bottom: 0.2rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
 }
 
-.price-change {
-  font-size: 1.1rem;
-  font-weight: 600;
+.change-details {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.change-details p {
+  margin: 0;
 }
 
 .price-up {
@@ -303,30 +299,11 @@ const deleteComment = async (index) => {
 }
 
 .price-down {
-  color: #0d6efd;
+  color: #28a745;
 }
 
 .price-neutral {
-  color: #666;
-}
-
-.volume-section {
-  flex: 1;
-  text-align: center;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-}
-
-.volume-section h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #666;
-}
-
-.volume-section p {
-  margin: 0.25rem 0 0;
-  font-size: 1.2rem;
+  color: #6c757d;
 }
 
 .analysis-section,
