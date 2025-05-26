@@ -54,6 +54,22 @@
       </div>
     </div>
 
+    <div v-if="youtubeVideos.length" class="youtube-section">
+      <h3>관련 유튜브 영상</h3>
+      <div class="youtube-list">
+        <div v-for="video in youtubeVideos" :key="video.id.videoId" class="youtube-item">
+          <iframe
+            width="320"
+            height="180"
+            :src="`https://www.youtube.com/embed/${video.id.videoId}`"
+            frameborder="0"
+            allowfullscreen
+          ></iframe>
+          <div>{{ video.snippet.title }}</div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="errorMessage" class="error-message">
       {{ errorMessage }}
     </div>
@@ -66,6 +82,7 @@ import axios from 'axios'
 
 const searchQuery = ref('')
 const stockData = ref(null)
+const youtubeVideos = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -93,12 +110,28 @@ const searchStock = async () => {
         chatgpt_response: response.data.chatgpt_response,
         price_info: response.data.price_info
       }
+      await searchYoutubeVideos(searchQuery.value)
     }
   } catch (error) {
     errorMessage.value = '분석 중 오류가 발생했습니다.'
     console.error('Error:', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+const searchYoutubeVideos = async (query) => {
+  youtubeVideos.value = []
+  if (!query) return
+  const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${encodeURIComponent(query + ' 주식')}+분석&key=${apiKey}`
+
+  try {
+    const res = await axios.get(url)
+    youtubeVideos.value = res.data.items
+  } catch (e) {
+    errorMessage.value = '유튜브 동영상 검색 중 오류가 발생했습니다.'
+    console.error('유튜브 API 오류:', e)
   }
 }
 
@@ -287,4 +320,8 @@ const getChangeRateClass = (changeRate) => {
   text-align: center;
   margin-top: 20px;
 }
+
+.youtube-section { margin-top: 30px; }
+.youtube-list { display: flex; gap: 20px; }
+.youtube-item { flex: 1; }
 </style> 
