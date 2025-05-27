@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
 from .serializers import MetalPriceSerializer, MetalPriceUploadSerializer
 from .models import MetalPrice
 import pandas as pd
@@ -14,14 +15,37 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 
 class MetalPriceListView(APIView):
+    permission_classes = [AllowAny]  # 인증 없이도 접근 가능하도록 설정
+    
     def get(self, request):
         metal_type = request.query_params.get('metal_type')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
         
-        logger.info(f"Fetching metal prices with metal_type={metal_type}")
+        logger.info(f"Fetching metal prices with metal_type={metal_type}, start_date={start_date}, end_date={end_date}")
         
         try:
+            # 기본 쿼리셋 생성
+            queryset = MetalPrice.objects.all()
+            
             # 금속 유형으로 필터링
-            queryset = MetalPrice.objects.filter(metal_type=metal_type)
+            if metal_type:
+                queryset = queryset.filter(metal_type=metal_type)
+            
+            # 날짜 범위로 필터링
+            if start_date:
+                try:
+                    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    queryset = queryset.filter(date__gte=start_date)
+                except ValueError:
+                    logger.warning(f"Invalid start_date format: {start_date}")
+            
+            if end_date:
+                try:
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    queryset = queryset.filter(date__lte=end_date)
+                except ValueError:
+                    logger.warning(f"Invalid end_date format: {end_date}")
             
             # 날짜순으로 정렬
             queryset = queryset.order_by('date')

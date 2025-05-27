@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import UserUpdateSerializer, UserSerializer
 
 User = get_user_model()
@@ -24,6 +24,8 @@ class SignUpView(APIView):
         return Response({'detail': '회원가입 성공'}, status=status.HTTP_201_CREATED)
 
 class CheckNicknameView(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         nickname = request.data.get('nickname')
         if not nickname:
