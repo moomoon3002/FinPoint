@@ -72,6 +72,11 @@
         </div>
       </div>
     </div>
+
+    <div v-if="loading" class="loading-spinner-wrapper">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">검색 중...</div>
+    </div>
   </div>
 </template>
 
@@ -85,6 +90,9 @@ const stockData = ref(null)
 const youtubeVideos = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+const loading = ref(false)
+const result = ref(null)
+const searchTerm = ref('')
 
 // 유틸리티 함수
 const formatPrice = (price) => {
@@ -115,12 +123,8 @@ const formatPriceChange = (change) => {
 
 // API 호출
 const searchStock = async () => {
-  if (!searchQuery.value.trim()) {
-    errorMessage.value = '회사명을 입력해주세요.'
-    return
-  }
-
-  isLoading.value = true
+  loading.value = true
+  result.value = null
   errorMessage.value = ''
   stockData.value = null
 
@@ -154,6 +158,7 @@ const searchStock = async () => {
     console.error('Error:', error)
   } finally {
     isLoading.value = false
+    loading.value = false
   }
 }
 
@@ -191,3 +196,35 @@ const deleteComment = async (index) => {
   }
 }
 </script>
+
+<style scoped>
+.loading-spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  width: 100%;
+}
+.loading-spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #2a388f;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+.loading-text {
+  font-size: 1.1rem;
+  color: #2a388f;
+}
+.error-text {
+  color: #d32f2f;
+  margin-top: 1rem;
+}
+</style>

@@ -1,67 +1,73 @@
 <template>
   <div class="calendar-container">
-    <div class="calendar-section">
-      <div class="calendar-header">
-        <button class="nav-btn" @click="previousMonth">&lt;</button>
-        <h2>{{ currentYear }}년 {{ currentMonth + 1 }}월</h2>
-        <button class="nav-btn" @click="nextMonth">&gt;</button>
-        <button class="today-btn" @click="goToToday">오늘</button>
-      </div>
-
-      <div class="calendar-grid">
-        <!-- 요일 헤더 -->
-        <div class="weekday-header" v-for="day in weekDays" :key="day">
-          {{ day }}
+    <div v-if="loading" class="loading-spinner-wrapper">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">로딩 중...</div>
+    </div>
+    <template v-else>
+      <div class="calendar-section">
+        <div class="calendar-header">
+          <button class="nav-btn" @click="previousMonth">&lt;</button>
+          <h2>{{ currentYear }}년 {{ currentMonth + 1 }}월</h2>
+          <button class="nav-btn" @click="nextMonth">&gt;</button>
+          <button class="today-btn" @click="goToToday">오늘</button>
         </div>
 
-        <!-- 날짜 그리드 -->
-        <div
-          v-for="(day, index) in calendarDays"
+        <div class="calendar-grid">
+          <!-- 요일 헤더 -->
+          <div class="weekday-header" v-for="day in weekDays" :key="day">
+            {{ day }}
+          </div>
+
+          <!-- 날짜 그리드 -->
+          <div
+            v-for="(day, index) in calendarDays"
+            :key="index"
+            :class="[
+              'calendar-day',
+              { 'current-month': day.currentMonth },
+              { 'today': isToday(day.date) },
+              { 'selected': isSelected(day.date) },
+              { 'saturday': isSaturday(day.date) },
+              { 'sunday': isSunday(day.date) }
+            ]"
+            @click="selectDate(day.date)"
+          >
+            <span class="date">{{ day.dayNumber }}</span>
+            <div class="event-dots" v-if="getEvents(day.date).length">
+              <span class="event-dot" 
+                    v-for="(event, i) in getEvents(day.date)" 
+                    :key="i"
+                    :style="{ backgroundColor: event.color || '#2a388f' }"
+                    :title="event.title">
+              </span>
+            </div>
+            <!-- IPO 이벤트 텍스트 표시 -->
+            <div v-for="(event, i) in getEvents(day.date)" :key="'ipo-'+i" v-if="event && event.isIpo" class="ipo-event-text">
+              {{ event.title }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 상세 정보 영역 -->
+      <div class="selected-date-info" v-if="selectedDate">
+        <h3>{{ formatDate(selectedDate) }}</h3>
+        <div v-if="getEvents(selectedDate).length === 0" class="no-events">
+          IPO 이벤트가 없습니다.
+        </div>
+        <div 
+          v-for="(event, index) in getEvents(selectedDate)" 
           :key="index"
-          :class="[
-            'calendar-day',
-            { 'current-month': day.currentMonth },
-            { 'today': isToday(day.date) },
-            { 'selected': isSelected(day.date) },
-            { 'saturday': isSaturday(day.date) },
-            { 'sunday': isSunday(day.date) }
-          ]"
-          @click="selectDate(day.date)"
+          class="event-item"
         >
-          <span class="date">{{ day.dayNumber }}</span>
-          <div class="event-dots" v-if="getEvents(day.date).length">
-            <span class="event-dot" 
-                  v-for="(event, i) in getEvents(day.date)" 
-                  :key="i"
-                  :style="{ backgroundColor: event.color || '#2a388f' }"
-                  :title="event.title">
-            </span>
-          </div>
-          <!-- IPO 이벤트 텍스트 표시 -->
-          <div v-for="(event, i) in getEvents(day.date)" :key="'ipo-'+i" v-if="event && event.isIpo" class="ipo-event-text">
-            {{ event.title }}
+          <div class="event-color" :style="{ backgroundColor: event.color || '#2a388f' }"></div>
+          <div class="event-info">
+            <div class="event-title">{{ event.title }}</div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 상세 정보 영역 -->
-    <div class="selected-date-info" v-if="selectedDate">
-      <h3>{{ formatDate(selectedDate) }}</h3>
-      <div v-if="getEvents(selectedDate).length === 0" class="no-events">
-        IPO 이벤트가 없습니다.
-      </div>
-      <div 
-        v-for="(event, index) in getEvents(selectedDate)" 
-        :key="index"
-        class="event-item"
-      >
-        <div class="event-color" :style="{ backgroundColor: event.color || '#2a388f' }"></div>
-        <div class="event-info">
-          <div class="event-title">{{ event.title }}</div>
-        </div>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -73,6 +79,7 @@ const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 const currentDate = ref(new Date())
 const selectedDate = ref(null)
 const ipoCalendar = ref([])
+const loading = ref(false)
 
 const displayYear = ref(new Date().getFullYear())
 const displayMonth = ref(new Date().getMonth())
@@ -159,11 +166,14 @@ const isSaturday = (date) => date.getDay() === 6
 const isSunday = (date) => date.getDay() === 0
 
 const fetchIpoCalendar = async () => {
+  loading.value = true
   try {
     const res = await axios.get('http://localhost:8000/ipo-calendar/')
     ipoCalendar.value = res.data.calendar || []
   } catch (e) {
     console.error('IPO 캘린더 불러오기 실패:', e)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -527,5 +537,30 @@ onMounted(() => {
 .ipo-list ul {
   margin: 0.2rem 0 0 1rem;
   padding: 0;
+}
+.loading-spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
+}
+.loading-spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #2a388f;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+.loading-text {
+  font-size: 1.2rem;
+  color: #2a388f;
 }
 </style> 
