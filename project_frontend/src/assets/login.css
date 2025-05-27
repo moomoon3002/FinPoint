@@ -74,15 +74,11 @@
 
 /* 로그인 박스 중앙 정렬 */
 .login-center {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 60px; /* 네비게이션과 더 가까이 */
-  width: 100%;
-  max-width: 400px;
-  padding: 20px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-top: 60px;
 }
 
 .login-logo {
@@ -95,13 +91,15 @@
 
 .login-box{
   background: #fff;
-  padding: 40px 32px;
+  padding: 2rem;
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 320px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .login-box h2 {
@@ -150,10 +148,10 @@
 @media (max-width: 600px) {
   .login-box {
     min-width: 90vw;
-    padding: 24px 8px;
+    padding: 16px 8px; /* signup-box와 동일하게 맞춤 */
   }
   .login-center {
-    margin-top: 8px; /* 모바일에서 더 가까이 */
+    margin-top: 20px;
   }
   .logo-row .logo {
     font-size: 1.2rem;
@@ -180,27 +178,14 @@ input:focus {
   border-color: #2a388f;
 }
 
-.login-btn {
-  width: 100%;
-  padding: 0.8rem;
-  background: #2a388f;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-bottom: 1rem;
-  border-radius: 24px;
-}
-
 .login-btn:hover {
   background: #1a287f;
 }
 
 .signup-section {
   text-align: center;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid #eee;
 }
 
@@ -222,24 +207,26 @@ input:focus {
 
 .find-section {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin-bottom: 12px;
-  gap: 8px;
+  justify-content: center;
+  gap: 2px;
+  margin-bottom: 18px;
 }
 .find-link {
-  color: #2a388f;
-  text-decoration: none;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: color 0.2s;
+  background: transparent;
+  border: none;
+  color: #2a388c;
+  font-size: 0.98rem;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
 }
 .find-link:hover {
-  text-decoration: underline;
-  color: #1a287f;
+  background: #f0f4ff;
 }
 .find-divider {
-  color: #aaa;
-  font-size: 0.95rem;
-  padding: 0px 4px;
+  color: #b0b6d5;
+  font-size: 1rem;
+  margin: 0 2px;
 }
