@@ -37,6 +37,10 @@
                   :title="event.title">
             </span>
           </div>
+          <!-- IPO 이벤트 텍스트 표시 -->
+          <div v-for="(event, i) in getEvents(day.date)" :key="'ipo-'+i" v-if="event.isIpo" class="ipo-event-text">
+            {{ event.title }}
+          </div>
         </div>
       </div>
     </div>
@@ -51,12 +55,12 @@
         v-for="(event, index) in getEvents(selectedDate)" 
         :key="index"
         class="event-item"
-        @click="editEvent(event)"
       >
         <div class="event-color" :style="{ backgroundColor: event.color || '#2a388f' }"></div>
         <div class="event-info">
           <div class="event-title">{{ event.title }}</div>
           <div class="event-time" v-if="event.time">{{ event.time }}</div>
+          <div v-if="event.isIpo" class="ipo-info-text">IPO 이벤트 정보입니다.</div>
         </div>
       </div>
       <button class="add-event-btn" @click="showAddEventModal">일정 추가</button>
@@ -132,6 +136,7 @@ const selectedDate = ref(null)
 const showEventModal = ref(false)
 const editingEvent = ref(null)
 const events = ref([])
+const ipoCalendar = ref([])
 
 // 현재 연도와 월을 직접 ref로 관리
 const displayYear = ref(new Date().getFullYear())
@@ -268,14 +273,46 @@ const hasEvents = (date) => {
   return getEvents(date).length > 0
 }
 
+const fetchIpoCalendar = async () => {
+  try {
+    const res = await axios.get('http://localhost:8000/ipo_calendar/')
+    ipoCalendar.value = res.data.calendar || []
+  } catch (e) {
+    console.error('IPO 캘린더 불러오기 실패:', e)
+  }
+}
+
+function ipoTypeColor(type) {
+  switch (type) {
+    case '수요예측': return '#6ec6ff'
+    case '청약': return '#ffb6c1'
+    case '환불': return '#bdbdbd'
+    case '상장': return '#90caf9'
+    case '락업해제': return '#ffd700'
+    default: return '#bdbdbd'
+  }
+}
+
 const getEvents = (date) => {
   if (!date) return []
-  return events.value.filter(event => {
+  // 사용자 일정
+  const userEvents = events.value.filter(event => {
     const eventDate = new Date(event.date)
     return eventDate.getDate() === date.getDate() &&
            eventDate.getMonth() === date.getMonth() &&
            eventDate.getFullYear() === date.getFullYear()
   })
+  // IPO 이벤트
+  const dateStr = date.toISOString().split('T')[0]
+  const ipoDay = ipoCalendar.value.find(d => d.date === dateStr)
+  const ipoEvents = ipoDay
+    ? ipoDay.events.map(ev => ({
+        title: `[IPO] ${ev.company} (${ev.type})`,
+        color: ipoTypeColor(ev.type),
+        isIpo: true
+      }))
+    : []
+  return [...userEvents, ...ipoEvents]
 }
 
 const showAddEventModal = () => {
@@ -396,6 +433,7 @@ const currentMonth = computed(() => displayMonth.value)
 onMounted(() => {
   goToToday()
   fetchEvents()
+  fetchIpoCalendar()
 })
 </script>
 
@@ -677,5 +715,20 @@ onMounted(() => {
   text-align: center;
   color: #666;
   padding: 1rem;
+}
+
+.ipo-event-text {
+  font-size: 0.8rem;
+  color: #2a388f;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ipo-info-text {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 2px;
 }
 </style> 

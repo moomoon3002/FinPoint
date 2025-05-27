@@ -77,7 +77,7 @@
             <strong>{{ product.interestRate }}%</strong><span class="sub-text">이자율</span>
           </div>
           <div class="col period">
-            <spans style="font-size: medium; color: #666;">{{ product.period}}개월</spans>
+          <spans style="font-size: medium; color: #666;">{{ product.period}}개월</spans>
           </div>
           <div class="col action">
             <button @click="showDetail(product)" class="detail-btn">자세히보기</button>
@@ -125,7 +125,16 @@
             <span>{{ selectedProduct.joinLimit || '제한없음' }}</span>
           </div>
         </div>
-        <button @click="selectedProduct = null" class="close-btn">닫기</button>
+        <div class="modal-actions">
+          <button 
+            v-if="isLoggedIn"
+            @click="toggleFavorite" 
+            :class="['favorite-btn', { 'is-favorite': isFavorite }]"
+          >
+            {{ isFavorite ? '관심상품 해제' : '관심상품 등록' }}
+          </button>
+          <button @click="selectedProduct = null" class="close-btn">닫기</button>
+        </div>
       </div>
     </div>
   </div>
@@ -134,10 +143,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const products = ref([])
 const selectedProduct = ref(null)
-const selectedType = ref('deposit') // 기본값은 예금
+const selectedType = ref('deposit')
+const isLoggedIn = ref(false)
+const isFavorite = ref(false)
 
 const filters = ref({
   bank: '',
@@ -197,12 +210,67 @@ const fetchProducts = async () => {
   }
 }
 
+// 관심상품 상태 확인
+const checkFavoriteStatus = async (productId) => {
+  if (!isLoggedIn.value) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get(`http://localhost:8000/deposits/favorites/check/${productId}/`, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    isFavorite.value = response.data.is_favorite
+  } catch (error) {
+    console.error('Failed to check favorite status:', error)
+  }
+}
+
+// 관심상품 토글
+const toggleFavorite = async () => {
+  if (!isLoggedIn.value) {
+    alert('로그인이 필요한 서비스입니다.')
+    router.push('/login')
+    return
+  }
+
+  try {
+    const token = localStorage.getItem('token')
+    const url = isFavorite.value 
+      ? `http://localhost:8000/deposits/favorites/remove/${selectedProduct.value.id}/`
+      : `http://localhost:8000/deposits/favorites/add/${selectedProduct.value.id}/`
+    
+    const response = await axios.post(url, {}, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    
+    isFavorite.value = !isFavorite.value
+    alert(isFavorite.value ? '관심상품이 등록되었습니다.' : '관심상품이 해제되었습니다.')
+  } catch (error) {
+    console.error('Failed to toggle favorite:', error)
+    alert('관심상품 처리 중 오류가 발생했습니다.')
+  }
+}
+
+// 로그인 상태 확인
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('token')
+  isLoggedIn.value = !!token
+}
+
 // 상세 정보 표시
-const showDetail = (product) => {
+const showDetail = async (product) => {
   selectedProduct.value = product
+  if (isLoggedIn.value) {
+    await checkFavoriteStatus(product.id)
+  }
 }
 
 onMounted(() => {
+  checkLoginStatus()
   fetchProducts()
 })
 </script>
@@ -362,8 +430,35 @@ onMounted(() => {
   color: #666;
 }
 
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.favorite-btn {
+  flex: 1;
+  padding: 0.8rem;
+  background-color: #ffd700;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.favorite-btn.is-favorite {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.favorite-btn:hover {
+  opacity: 0.9;
+}
+
 .close-btn {
-  width: 100%;
+  flex: 1;
   padding: 0.8rem;
   background-color: #6c757d;
   color: white;

@@ -70,6 +70,65 @@
         </div>
       </form>
     </div>
+
+    <!-- 관심상품 섹션 -->
+    <div class="favorites-section">
+      <h3>관심상품</h3>
+      <div v-if="favoriteProducts.length > 0" class="favorites-list">
+        <div v-for="product in favoriteProducts" :key="product.id" class="favorite-item">
+          <div class="product-info">
+            <h4>{{ product.name }}</h4>
+            <p class="bank-name">{{ product.bank }}</p>
+            <p class="product-type">{{ product.type }}</p>
+            <p class="interest-rate">기본 금리: {{ product.interestRate }}%</p>
+            <p class="period">가입 기간: {{ product.period }}개월</p>
+          </div>
+          <div class="product-actions">
+            <button @click="removeFavorite(product.id)" class="remove-btn">관심상품 해제</button>
+            <button @click="showDetail(product)" class="detail-btn">상세보기</button>
+          </div>
+        </div>
+      </div>
+      <p v-else class="no-favorites">관심상품이 없습니다.</p>
+    </div>
+
+    <!-- 상세 정보 모달 -->
+    <div v-if="selectedProduct" class="modal">
+      <div class="modal-content">
+        <h3>{{ selectedProduct.name }}</h3>
+        <div class="detail-info">
+          <div class="info-row">
+            <label>은행명</label>
+            <span>{{ selectedProduct.bank }}</span>
+          </div>
+          <div class="info-row">
+            <label>상품 종류</label>
+            <span>{{ selectedProduct.type }}</span>
+          </div>
+          <div class="info-row">
+            <label>기본 금리</label>
+            <span>{{ selectedProduct.interestRate }}%</span>
+          </div>
+          <div class="info-row">
+            <label>가입 기간</label>
+            <span>{{ selectedProduct.period }}개월</span>
+          </div>
+          <div class="info-row">
+            <label>가입 방법</label>
+            <span>{{ selectedProduct.joinWay }}</span>
+          </div>
+          <div class="info-row">
+            <label>우대 조건</label>
+            <span>{{ selectedProduct.specialCondition || '없음' }}</span>
+          </div>
+          <div class="info-row">
+            <label>가입 제한</label>
+            <span>{{ selectedProduct.joinLimit || '제한없음' }}</span>
+          </div>
+        </div>
+        <button @click="selectedProduct = null" class="close-btn">닫기</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -85,6 +144,8 @@ const editForm = ref({
   age: 0,
   salary: 0
 })
+const favoriteProducts = ref([])
+const selectedProduct = ref(null)
 
 const profileImageUrl = computed(() => {
   if (userData.value?.profile_image) {
@@ -174,8 +235,58 @@ const updateProfile = async () => {
   }
 }
 
+// 관심상품 목록 가져오기
+const fetchFavorites = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get('http://localhost:8000/deposits/favorites/', {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    // 응답 데이터 구조에 맞게 변환
+    favoriteProducts.value = response.data.map(item => ({
+      id: item.deposit.deposit_ID,
+      name: item.deposit.fin_prdt_nm,
+      bank: item.deposit.kor_co_nm,
+      type: item.deposit.product_type,
+      interestRate: Math.max(...(item.deposit.options?.map(opt => opt.intr_rate) || [0])),
+      period: parseInt(item.deposit.options?.[0]?.save_trm) || 0,
+      joinWay: item.deposit.join_way,
+      specialCondition: item.deposit.spcl_cnd,
+      joinLimit: item.deposit.join_deny
+    }))
+  } catch (error) {
+    console.error('Failed to fetch favorites:', error)
+  }
+}
+
+// 관심상품 해제
+const removeFavorite = async (productId) => {
+  try {
+    const token = localStorage.getItem('token')
+    await axios.post(`http://localhost:8000/deposits/favorites/remove/${productId}/`, {}, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    // 목록에서 제거
+    favoriteProducts.value = favoriteProducts.value.filter(p => p.id !== productId)
+    alert('관심상품이 해제되었습니다.')
+  } catch (error) {
+    console.error('Failed to remove favorite:', error)
+    alert('관심상품 해제 중 오류가 발생했습니다.')
+  }
+}
+
+// 상세 정보 표시
+const showDetail = (product) => {
+  selectedProduct.value = product
+}
+
 onMounted(() => {
   fetchUserData()
+  fetchFavorites()
 })
 </script>
 
@@ -338,5 +449,126 @@ onMounted(() => {
 
 .cancel-btn:hover {
   background-color: #da190b;
+}
+
+.favorites-section {
+  margin-top: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.favorites-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.favorite-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+
+.product-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2a388f;
+}
+
+.product-info p {
+  margin: 0.25rem 0;
+  color: #666;
+}
+
+.product-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.remove-btn,
+.detail-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.remove-btn {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.detail-btn {
+  background-color: #2a388f;
+  color: white;
+}
+
+.remove-btn:hover {
+  background-color: #ff5252;
+}
+
+.detail-btn:hover {
+  background-color: #1a287f;
+}
+
+.no-favorites {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+}
+
+.detail-info {
+  margin: 1.5rem 0;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.info-row label {
+  width: 120px;
+  font-weight: bold;
+  color: #666;
+}
+
+.close-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background-color: #5a6268;
 }
 </style> 

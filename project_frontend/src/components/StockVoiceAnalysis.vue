@@ -125,8 +125,18 @@ const searchStock = async () => {
   stockData.value = null
 
   try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      errorMessage.value = '로그인이 필요합니다.'
+      return
+    }
+
     const response = await axios.post('http://localhost:8000/crawlings/', {
       company_name: searchQuery.value
+    }, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
     })
 
     if (response.data.error_message) {
@@ -136,7 +146,11 @@ const searchStock = async () => {
       await searchYoutubeVideos(searchQuery.value)
     }
   } catch (error) {
-    errorMessage.value = '분석 중 오류가 발생했습니다.'
+    if (error.response?.status === 401) {
+      errorMessage.value = '로그인이 필요합니다.'
+    } else {
+      errorMessage.value = '분석 중 오류가 발생했습니다.'
+    }
     console.error('Error:', error)
   } finally {
     isLoading.value = false
