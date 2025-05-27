@@ -33,7 +33,8 @@
 
     <!-- 캘린더 영역 -->
     <section ref="calendar" style="min-height:100vh; padding:60px 0; background:#fff;">
-      <div style="text-align:center; font-size:2rem; color:#2a388c;">캘린더 영역</div>
+      <div style="text-align:center; font-size:2rem; color:#2a388c;"></div>
+      
     </section>
 
     <!-- 은행찾기 영역 -->
