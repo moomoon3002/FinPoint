@@ -143,6 +143,7 @@ textarea {
   display: flex;
   gap: 1rem;
   margin-top: 2rem;
+  justify-content: flex-end;
 }
 
 .submit-btn,

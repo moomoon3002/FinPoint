@@ -1,8 +1,9 @@
 <template>
   <div class="article-container">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <div v-if="article" class="article-content">
       <div class="article-header">
-        <h2>{{ article.title }}</h2>
+        <h2 class="article-title">{{ article.title }}</h2>
         <div class="article-meta">
           <span class="author">
             <img 
@@ -40,7 +41,9 @@
             placeholder="댓글을 입력하세요"
             rows="3"
           ></textarea>
-          <button @click="submitComment" class="submit-comment-btn">댓글 작성</button>
+          <button @click="submitComment" class="submit-comment-btn">
+            <i class="fas fa-paper-plane"></i>
+          </button>
         </div>
         <div v-else class="login-message">
           <router-link to="/login">로그인</router-link>하고 댓글을 작성하세요.
@@ -49,39 +52,47 @@
         <!-- 댓글 목록 -->
         <div class="comments-list">
           <div v-for="comment in article.comments" :key="comment.id" class="comment-item">
-            <div class="comment-header">
-              <div class="comment-author">
+            <div class="comment-container">
+              <div class="profile-image-container">
                 <img 
                   :src="getImageUrl(comment.user?.profile_image)" 
                   class="comment-author-image" 
                   alt="프로필 이미지"
                 >
-                <span>{{ comment.user?.nickname || '알 수 없음' }}</span>
               </div>
-              <div class="comment-meta">
-                <span class="comment-date">{{ formatDate(comment.created_at) }}</span>
-                <!-- 댓글 작성자만 볼 수 있는 수정/삭제 버튼 -->
-                <div v-if="currentUser && currentUser.id && comment.user && comment.user.id && currentUser.id === comment.user.id" class="comment-actions">
-                  <button @click="editComment(comment)" class="edit-comment-btn">수정</button>
-                  <button @click="deleteComment(comment.id)" class="delete-comment-btn">삭제</button>
+              <div class="comment-content-wrapper">
+                <div class="comment-header">
+                  <div class="comment-top">
+                    <div class="user-info">
+                      <span class="author-name">{{ comment.user?.nickname || '알 수 없음' }}</span>
+                      <span class="comment-date">{{ formatDate(comment.created_at) }}</span>
+                    </div>
+                    <!-- 댓글 작성자만 볼 수 있는 수정/삭제 버튼 -->
+                    <div v-if="currentUser && currentUser.id && comment.user && comment.user.id && currentUser.id === comment.user.id" class="comment-actions">
+                      <button v-if="editingCommentId !== comment.id" @click="editComment(comment)" class="action-btn edit-btn">수정</button>
+                      <span v-if="editingCommentId !== comment.id" class="divider">|</span>
+                      <button v-if="editingCommentId !== comment.id" @click="deleteComment(comment.id)" class="action-btn delete-btn">삭제</button>
+                      
+                      <button v-if="editingCommentId === comment.id" @click="updateComment(comment.id)" class="action-btn save-btn">저장</button>
+                      <span v-if="editingCommentId === comment.id" class="divider">|</span>
+                      <button v-if="editingCommentId === comment.id" @click="cancelEdit" class="action-btn cancel-btn">취소</button>
+                    </div>
+                  </div>
+                  
+                  <!-- 댓글 수정 폼 -->
+                  <div v-if="editingCommentId === comment.id" class="comment-edit-form">
+                    <textarea 
+                      v-model="editingCommentContent" 
+                      class="comment-edit-textarea"
+                      rows="3"
+                    ></textarea>
+                  </div>
+                  <!-- 일반 댓글 내용 -->
+                  <div v-else class="comment-text">
+                    {{ comment.content }}
+                  </div>
                 </div>
               </div>
-            </div>
-            <!-- 댓글 수정 폼 -->
-            <div v-if="editingCommentId === comment.id" class="comment-edit-form">
-              <textarea 
-                v-model="editingCommentContent" 
-                class="comment-edit-textarea"
-                rows="3"
-              ></textarea>
-              <div class="comment-edit-actions">
-                <button @click="updateComment(comment.id)" class="save-comment-btn">저장</button>
-                <button @click="cancelEdit" class="cancel-comment-btn">취소</button>
-              </div>
-            </div>
-            <!-- 일반 댓글 내용 -->
-            <div v-else class="comment-content">
-              {{ comment.content }}
             </div>
           </div>
         </div>
@@ -359,18 +370,32 @@ onMounted(async () => {
   padding-bottom: 1rem;
 }
 
+.article-title {
+  text-align: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
 .article-meta {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  color: #666;
-  margin-top: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  padding: 0 0.5rem;
 }
 
 .author {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.date {
+  color: #666;
+  font-size: 0.9rem;
+  padding-left: 2.5rem;  /* author-image width + gap */
 }
 
 .author-image, .comment-author-image {
@@ -403,6 +428,7 @@ onMounted(async () => {
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid #eee;
+  justify-content: flex-end;
 }
 
 .edit-btn, 
@@ -411,27 +437,27 @@ onMounted(async () => {
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.edit-btn {
-  background-color: #2a388f;
-  color: white;
-  text-decoration: none;
-}
-
-.edit-btn:hover {
-  background-color: #1a287f;
-}
-
-.delete-btn {
-  background-color: #dc3545;
-  color: white;
+  transition: all 0.2s;
   border: none;
 }
 
+.edit-btn {
+  color: #0066cc;
+  background: none;
+  text-decoration: none;
+}
+
+.delete-btn {
+  color: #dc3545;
+  background: none;
+}
+
+.edit-btn:hover {
+  color: #0052a3;
+}
+
 .delete-btn:hover {
-  background-color: #c82333;
+  color: #dc3545;
 }
 
 .comments-section {
@@ -442,24 +468,41 @@ onMounted(async () => {
 
 .comment-form {
   margin-bottom: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
 }
 
 .comment-form textarea {
-  width: 100%;
+  flex: 1;
   padding: 0.8rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
-  margin-bottom: 1rem;
+  min-height: 60px;
+  margin-bottom: 0;
 }
 
 .submit-comment-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   background-color: #2a388f;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  min-width: 40px;
+}
+
+.submit-comment-btn:hover {
+  background-color: #1a287f;
+}
+
+.submit-comment-btn i {
+  font-size: 1.2rem;
 }
 
 .login-message {
@@ -473,122 +516,124 @@ onMounted(async () => {
 }
 
 .comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  width: 100%;
 }
 
 .comment-item {
-  padding: 1rem;
-  border: 1px solid #eee;
-  border-radius: 4px;
+  padding: 1rem 0;
+  border-bottom: 1px solid #eee;
+  width: 100%;
+}
+
+.comment-container {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  width: 100%;
+}
+
+.profile-image-container {
+  margin-left: 1rem;
+  flex-shrink: 0;  /* 이미지 영역 크기 고정 */
+}
+
+.comment-author-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-content-wrapper {
+  flex: 1;
+  min-width: 0;  /* flex item 최소 너비 설정 */
+  padding-right: 120px;  /* 수정/삭제 버튼 공간 충분히 확보 */
 }
 
 .comment-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
 }
 
-.comment-author {
+.comment-top {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  width: 100%;
 }
 
-.comment-meta {
+.user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 2rem;  /* 닉네임과 작성일 사이 간격 */
+}
+
+.author-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
 }
 
 .comment-date {
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.comment-content {
+.comment-text {
+  margin-top: 0.3rem;
   line-height: 1.4;
-  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #333;
+  word-break: break-all;  /* 긴 텍스트 줄바꿈 */
 }
 
 .comment-actions {
+  position: absolute;
+  right: 1rem;  /* 오른쪽 여백 추가 */
+  top: 0;
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-.edit-comment-btn,
-.delete-comment-btn {
-  padding: 4px 8px;
+.action-btn {
+  background: none;
   border: none;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 0;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: color 0.2s;
 }
 
-.edit-comment-btn {
-  background-color: #2a388f;
-  color: white;
+.edit-btn, .save-btn {
+  color: #0066cc;
 }
 
-.edit-comment-btn:hover {
-  background-color: #1a287f;
+.delete-btn, .cancel-btn {
+  color: #dc3545;
 }
 
-.delete-comment-btn {
-  background-color: #dc3545;
-  color: white;
-}
-
-.delete-comment-btn:hover {
-  background-color: #c82333;
+.divider {
+  color: #ccc;
+  font-size: 0.85rem;
+  margin: 0 0.2rem;
 }
 
 .comment-edit-form {
   margin-top: 0.5rem;
+  width: 100%;
 }
 
 .comment-edit-textarea {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.8rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
-  margin-bottom: 0.5rem;
-}
-
-.comment-edit-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.save-comment-btn,
-.cancel-comment-btn {
-  padding: 4px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.save-comment-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.save-comment-btn:hover {
-  background-color: #218838;
-}
-
-.cancel-comment-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-.cancel-comment-btn:hover {
-  background-color: #5a6268;
+  min-height: 60px;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .article-navigation {
