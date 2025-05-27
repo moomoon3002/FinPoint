@@ -120,3 +120,199 @@
   color: #222 !important;
   font-weight: inherit;
 }
+
+
+.deposit-compare-wrapper {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.product-type-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab-btn {
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background-color: #2a388f;
+  color: white;
+}
+
+.tab-btn:hover {
+  background-color: #1a287f;
+  color: white;
+}
+
+.no-data {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* 기존 스타일 유지 */
+.deposit-compare-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.filter-section {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-select,
+.filter-input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.deposit-list {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.deposit-header {
+  display: grid;
+  grid-template-columns: 2fr 3fr 1fr 1fr 1fr;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  font-weight: bold;
+}
+
+.deposit-item {
+  display: grid;
+  grid-template-columns: 2fr 3fr 1fr 1fr 1fr;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.deposit-item:hover {
+  background-color: #f8f9fa;
+}
+
+.col {
+  padding: 0.5rem;
+}
+
+.sub-text {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.detail-btn {
+  padding: 0.5rem 1rem;
+  background-color: #2a388f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.detail-btn:hover {
+  background-color: #1a287f;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+}
+
+.detail-info {
+  margin: 1.5rem 0;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.info-row label {
+  width: 120px;
+  font-weight: bold;
+  color: #666;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.favorite-btn {
+  flex: 1;
+  padding: 0.8rem;
+  background-color: #2a388f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.favorite-btn.is-favorite {
+  background-color: #c74040;
+  color: white;
+}
+
+.favorite-btn:hover {
+  opacity: 0.9;
+}
+
+.close-btn {
+  flex: 1;
+  padding: 0.8rem;
+  background-color: #E0E0E0;
+  color: black;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background-color: #5a6268;
+}

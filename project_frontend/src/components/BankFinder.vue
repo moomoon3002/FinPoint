@@ -1,7 +1,7 @@
 <template>
   <div class="bank-finder">
     <h2>은행 찾기</h2>
-    <div class="highlight-bar">가까운 은행을 찾아보세요</div>
+    <!-- <div class="highlight-bar">가까운 은행을 찾아보세요</div> -->
 
     <div class="search-container">
       <div class="filter-section">
@@ -22,8 +22,10 @@
       </div>
 
       <div class="search-section">
-        <button @click="searchBanks" class="search-button">검색</button>
-        <button @click="findNearbyBanks" class="nearby-button">내 주변 검색</button>
+        <button @click="searchBanks" class="search-button">
+          <i class="fas fa-search"></i>
+        </button>
+        <button @click="findNearbyBanks" class="nearby-button">주변 검색</button>
       </div>
     </div>
 
@@ -570,7 +572,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f8fe;
 }
 
 h2 {
@@ -578,94 +580,141 @@ h2 {
   color: #333;
 }
 
-.highlight-bar {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  margin-bottom: 20px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
 .search-container {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto 20px auto;
   background-color: white;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
+  gap: 0;
 }
 
 .filter-section {
   display: flex;
-  gap: 10px;
+  gap: 0;
   flex: 1;
+  align-items: center;
 }
 
 .filter-select {
-  padding: 8px 12px;
+  flex: 1;
+  height: 44px;
+  font-size: 1rem;
+  line-height: 44px;
+  padding: 0 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  flex: 1;
   min-width: 120px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.filter-section .filter-select:last-child {
+  margin-right: 0;
 }
 
 .search-section {
   display: flex;
-  gap: 10px;
+  gap: 0;
+  align-items: flex-start;
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
 .search-button,
 .nearby-button {
-  padding: 8px 16px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  font-size: 1rem;
+  line-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
   border: none;
   border-radius: 4px;
-  cursor: pointer;
   font-weight: bold;
   transition: background-color 0.2s;
 }
 
 .search-button {
-  background-color: #007bff;
+  background-color: #2A388F;
+  color: white;
+  margin-left: 4px;
+}
+
+.search-button:hover {
+  background-color: #2A388F;
   color: white;
 }
 
 .nearby-button {
-  background-color: #28a745;
-  color: white;
+  margin-left: 4px;
+}
+
+.search-button i {
+  font-size: 1.1rem;
 }
 
 .search-button:hover {
-  background-color: #0056b3;
+  background-color: #2A388F;
+  color: white;
 }
 
 .nearby-button:hover {
-  background-color: #218838;
+  background-color: #2A388F;
+  color: white;
 }
 
 .content-container {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   flex: 1;
-  min-height: 0; /* 중요: 스크롤을 위해 필요 */
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.map-container,
+.bank-list-container {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 .map-container {
-  flex: 1;
+  flex: 1 1 0;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  min-height: 400px;
+  height: 600px;
+  min-height: 600px;
+  max-width: 1050px;
 }
 
 .bank-list-container {
   width: 350px;
+  min-width: 300px;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  height: 600px;
+  min-height: 600px;
+  overflow-y: auto;
 }
 
 .bank-list {

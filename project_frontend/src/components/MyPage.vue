@@ -487,6 +487,7 @@ onMounted(() => {
 }
 
 .detail-btn:hover {
+  background: none;
   color: #333;
 }
 
@@ -552,8 +553,8 @@ onMounted(() => {
 .close-btn {
   width: 100%;
   padding: 0.8rem;
-  background-color: #6c757d;
-  color: white;
+  background-color: #E0E0E0;
+  color: black;
   border: none;
   border-radius: 4px;
   cursor: pointer;

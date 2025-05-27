@@ -20,7 +20,7 @@
     <div v-if="stockData" class="stock-info-container">
       <div class="stock-header">
         <h2>{{ stockData.company_name }}</h2>
-        <p class="stock-code">{{ stockData.stock_code }}</p>
+        <p class="stock-code center-code">{{ stockData.stock_code }}</p>
       </div>
 
       <div class="price-info" v-if="stockData.price_info">
@@ -109,11 +109,11 @@ const formatUSD = (krwPrice) => {
 
 const getPriceChangeClass = (changeText) => {
   if (!changeText) return ''
-  return {
-    'price-up': !changeText.includes('-'),
-    'price-down': changeText.includes('-'),
-    'price-neutral': changeText.includes('0원')
-  }
+  const trimmed = changeText.trim();
+  if (trimmed.startsWith('+')) return 'red'
+  if (trimmed.startsWith('-')) return 'blue'
+  if (trimmed.startsWith('0') || trimmed.includes('0원')) return ''
+  return ''
 }
 
 const formatPriceChange = (change) => {
@@ -226,5 +226,26 @@ const deleteComment = async (index) => {
 .error-text {
   color: #d32f2f;
   margin-top: 1rem;
+}
+.stock-code.center-code {
+  text-align: center;
+  margin: 0.5rem 0 0;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.change-details p {
+  margin: 0;
+}
+
+.change-details p {
+  /* 기본값: 검정 */
+  color: #222;
+}
+.change-details p.red {
+  color: #dc3545;
+}
+.change-details p.blue {
+  color: #2A388F;
 }
 </style>
