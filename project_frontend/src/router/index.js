@@ -11,6 +11,7 @@ import BoardDetail from '../components/BoardDetail.vue'
 import BoardWrite from '../components/BoardWrite.vue'
 import BoardEdit from '../components/BoardEdit.vue'
 import BankFinder from '../components/BankFinder.vue'
+import Calendar from '../components/Calendar.vue'
 
 const routes = [
   { path: '/', name: 'Main', component: MainPage },
@@ -24,7 +25,8 @@ const routes = [
   { path: '/board', name: 'Board', component: Board },
   { path: '/board/:id', name: 'BoardDetail', component: BoardDetail },
   { path: '/board/write', name: 'BoardWrite', component: BoardWrite },
-  { path: '/board/edit/:id', name: 'BoardEdit', component: BoardEdit }
+  { path: '/board/edit/:id', name: 'BoardEdit', component: BoardEdit },
+  { path: '/calendar', name: 'Calendar', component: Calendar }
 ]
 
 const router = createRouter({
