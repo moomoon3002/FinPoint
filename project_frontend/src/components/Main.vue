@@ -31,10 +31,35 @@
       </div>
     </section>
 
-    <!-- 캘린더 영역 -->
-    <section ref="calendar" style="min-height:100vh; padding:60px 0; background:#fff;">
-      <div style="text-align:center; font-size:2rem; color:#2a388c;">캘린더 영역</div>
-    </section>
+      <section id="calendar-section" ref="calendar" style="min-height:100vh; padding:60px 0; background:#fff;">
+        <div class="calendar-flex-row">
+          <!-- 왼쪽: 글귀 위, 이미지 아래 -->
+          <div class="calendar-phone-block">
+            <div class="calendar-phone-top-text">
+              <span class="calendar-link">청약 · 공모주</span>
+              <div class="calendar-title">
+                재테크,<br>
+                청약부터 공모주까지<br>
+                똑똑하게
+              </div>
+            </div>
+            <img src="/img/myplanner.png"  alt="마이플래너" class="calendar-phone-img" />
+          </div>
+          <!-- 오른쪽: 이미지 위, 글귀 아래 -->
+          <div class="calendar-phone-block">
+            <img src="/img/calendar.png" alt="공모주 캘린더" class="calendar-phone-img" />
+            <div class="calendar-phone-bottom-text">
+              FINPOINT에서.<br>
+              예금비교, 현물비교, 은행찾기는 기본,<br>
+              한 번의 클릭으로 청약부터 공모주까지 확인.
+            </div>
+          </div>
+        </div>
+      <button class="calendar-btn" @click="goToCalendar" style="margin-top:32px;">
+        캘린더 바로가기
+      </button>
+      </section>
+
 
     <!-- 은행찾기 영역 -->
     <section ref="community" style="min-height:100vh; padding:60px 0; background:#f5f8fe;">
@@ -53,8 +78,8 @@
             class="marker-animate"
             style="
               position:absolute;
-              left:460px;
-              top:345px;  
+              left:400px;
+              top:320px;  
               width:100px;
               height:100px;
               z-index:2;
@@ -133,4 +158,8 @@ function goToLogin() {
 function goToBoard() {
   router.push('/board')
 }
+function goToCalendar() {
+  router.push('/calendar')
+}
+
 </script>
