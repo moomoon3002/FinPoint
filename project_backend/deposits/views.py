@@ -1,6 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
 from .models import DepositProduct, DepositOption, FavoriteDeposit
@@ -53,3 +53,48 @@ class DepositProductViewSet(viewsets.ReadOnlyModelViewSet):
         favorites = FavoriteDeposit.objects.filter(user=request.user).select_related('deposit')
         serializer = FavoriteDepositSerializer(favorites, many=True)
         return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_favorites(request):
+    favorites = FavoriteDeposit.objects.filter(user=request.user)
+    serializer = FavoriteDepositSerializer(favorites, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_favorite(request, product_id):
+    try:
+        product = DepositProduct.objects.get(deposit_ID=product_id)
+        favorite, created = FavoriteDeposit.objects.get_or_create(
+            user=request.user,
+            deposit=product
+        )
+        if created:
+            serializer = FavoriteDepositSerializer(favorite)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'message': '이미 관심상품으로 등록되어 있습니다.'}, status=status.HTTP_200_OK)
+    except DepositProduct.DoesNotExist:
+        return Response({'error': '상품을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_favorite(request, product_id):
+    try:
+        favorite = FavoriteDeposit.objects.get(user=request.user, deposit_id=product_id)
+        favorite.delete()
+        return Response({'message': '관심상품이 해제되었습니다.'}, status=status.HTTP_200_OK)
+    except FavoriteDeposit.DoesNotExist:
+        return Response({'error': '관심상품을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_favorite(request, product_id):
+    try:
+        is_favorite = FavoriteDeposit.objects.filter(
+            user=request.user,
+            deposit_id=product_id
+        ).exists()
+        return Response({'is_favorite': is_favorite})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
