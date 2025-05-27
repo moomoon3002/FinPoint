@@ -98,3 +98,40 @@ def check_favorite(request, product_id):
         return Response({'is_favorite': is_favorite})
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_recommend(request):
+    age = int(request.data.get('age', 0))
+    salary = int(request.data.get('salary', 0))
+    period = int(request.data.get('period', 0))
+
+    if not period:
+        return Response({'error': '가입 기간을 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 추천 로직: 30세 이하 & 연봉 4000만원 이하 → 적금, 그 외 → 예금
+    if age <= 30 and salary <= 40000000:
+        products = DepositProduct.objects.filter(product_type='적금').prefetch_related('options')
+    else:
+        products = DepositProduct.objects.filter(product_type='예금').prefetch_related('options')
+
+    recommend_list = []
+    for product in products:
+        # 입력한 기간과 일치하는 옵션 찾기
+        matching_options = [opt for opt in product.options.all() if int(opt.save_trm) == period]
+        if not matching_options:
+            continue
+        
+        # 해당 기간의 최고 금리 옵션 선택
+        best_option = max(matching_options, key=lambda o: float(o.intr_rate or 0))
+        recommend_list.append({
+            'name': product.fin_prdt_nm,
+            'bank': product.kor_co_nm,
+            'interestRate': float(best_option.intr_rate or 0),
+            'period': int(best_option.save_trm or 0)
+        })
+
+    # 금리 높은 순으로 3개 추천
+    recommend_list = sorted(recommend_list, key=lambda x: x['interestRate'], reverse=True)[:3]
+
+    return Response({'recommendations': recommend_list})

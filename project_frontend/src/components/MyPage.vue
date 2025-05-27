@@ -2,73 +2,52 @@
   <div class="mypage-container">
     <h2>마이페이지</h2>
     <div class="profile-section" v-if="userData">
-      <div class="profile-header">
-        <div class="profile-image-section">
-          <div class="profile-image-container">
-            <img 
-              :src="profileImageUrl" 
-              alt="프로필 이미지" 
-              class="profile-img"
-            />
-          </div>
-          <button @click="triggerFileInput" class="image-edit-btn">
-            프로필 사진 수정
-          </button>
-          <input 
-            type="file" 
-            ref="fileInput" 
-            @change="handleImageChange" 
-            accept="image/*" 
-            style="display: none"
-          />
-        </div>
-        <div class="profile-info">
-          <h3>{{ userData.nickname }}</h3>
-          <p>{{ userData.email }}</p>
+      <div class="profile-left">
+        <div class="profile-image-container">
+          <img :src="profileImageUrl" alt="프로필 이미지" class="profile-img-large" />
         </div>
       </div>
-      
-      <div class="profile-details">
-        <div class="info-group">
-          <label>사용자 이름</label>
-          <p>{{ userData.username }}</p>
+      <div class="profile-right">
+        <div class="profile-nickname">{{ userData.nickname }}</div>
+        <div class="profile-info-list">
+          <div class="info-row"><label>이메일</label><span>{{ userData.email }}</span></div>
+          <div class="info-row"><label>이름</label><span>{{ userData.username }}</span></div>
+          <div class="info-row"><label>나이</label><span>{{ userData.age }}세</span></div>
+          <div class="info-row"><label>연봉</label><span>{{ userData.salary ? userData.salary.toLocaleString() + '원' : '미입력' }}</span></div>
         </div>
-        <div class="info-group">
-          <label>나이</label>
-          <p>{{ userData.age }}세</p>
+        <div class="profile-actions">
+          <button @click="openEditModal" class="edit-btn">프로필/사진 수정</button>
         </div>
-        <div class="info-group">
-          <label>연봉</label>
-          <p>{{ userData.salary ? userData.salary.toLocaleString() + '원' : '미입력' }}</p>
-        </div>
-      </div>
-
-      <div class="action-buttons">
-        <button @click="showEditForm = true" class="edit-btn">프로필 수정</button>
       </div>
     </div>
 
-    <!-- 프로필 수정 폼 -->
-    <div v-if="showEditForm" class="edit-form">
-      <h3>프로필 수정</h3>
-      <form @submit.prevent="updateProfile">
-        <div class="form-group">
-          <label>닉네임</label>
-          <input type="text" v-model="editForm.nickname" required>
-        </div>
-        <div class="form-group">
-          <label>나이</label>
-          <input type="number" v-model="editForm.age" required>
-        </div>
-        <div class="form-group">
-          <label>연봉</label>
-          <input type="number" v-model="editForm.salary">
-        </div>
-        <div class="form-buttons">
-          <button type="submit" class="save-btn">저장</button>
-          <button type="button" @click="showEditForm = false" class="cancel-btn">취소</button>
-        </div>
-      </form>
+    <!-- 프로필/사진 통합 수정 모달 -->
+    <div v-if="showEditModal" class="modal-bg" @click.self="showEditModal = false">
+      <div class="modal-box">
+        <h3 class="modal-title">프로필 수정</h3>
+        <form @submit.prevent="updateProfile">
+          <div class="profile-edit-img-section">
+            <img :src="editPreviewImageUrl" alt="프로필 미리보기" class="profile-img-large" />
+            <input type="file" @change="handleEditImageChange" accept="image/*" />
+          </div>
+          <div class="form-group">
+            <label>닉네임</label>
+            <input type="text" v-model="editForm.nickname" required>
+          </div>
+          <div class="form-group">
+            <label>나이</label>
+            <input type="number" v-model="editForm.age" required>
+          </div>
+          <div class="form-group">
+            <label>연봉</label>
+            <input type="number" v-model="editForm.salary">
+          </div>
+          <div class="modal-btns">
+            <button type="submit" class="modal-btn main">저장</button>
+            <button type="button" @click="showEditModal = false" class="modal-btn">취소</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- 관심상품 섹션 -->
@@ -77,15 +56,21 @@
       <div v-if="favoriteProducts.length > 0" class="favorites-list">
         <div v-for="product in favoriteProducts" :key="product.id" class="favorite-item">
           <div class="product-info">
-            <h4>{{ product.name }}</h4>
+            <div class="title-row">
+              <h4>{{ product.name }}</h4>
+              <div class="button-group">
+                <button @click="showDetail(product)" class="detail-btn">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button @click="removeFavorite(product.id)" class="remove-btn">
+                  <i class="fas fa-heart"></i>
+                </button>
+              </div>
+            </div>
             <p class="bank-name">{{ product.bank }}</p>
             <p class="product-type">{{ product.type }}</p>
             <p class="interest-rate">기본 금리: {{ product.interestRate }}%</p>
             <p class="period">가입 기간: {{ product.period }}개월</p>
-          </div>
-          <div class="product-actions">
-            <button @click="removeFavorite(product.id)" class="remove-btn">관심상품 해제</button>
-            <button @click="showDetail(product)" class="detail-btn">상세보기</button>
           </div>
         </div>
       </div>
@@ -129,6 +114,46 @@
         <button @click="selectedProduct = null" class="close-btn">닫기</button>
       </div>
     </div>
+
+    <div class="ai-recommend-section">
+      <button @click="showPeriodModal = true" :disabled="aiLoading" class="ai-recommend-btn">
+        AI 예적금 추천 받기
+      </button>
+      <div v-if="aiLoading" class="loading-spinner-wrapper">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">추천 분석 중...</div>
+      </div>
+      <div v-if="aiRecommendResult" class="ai-recommend-result">
+        <h4>AI 추천 상품</h4>
+        <ul>
+          <li v-for="(item, idx) in aiRecommendResult" :key="idx">
+            {{ item.name }} ({{ item.bank }}) - {{ item.interestRate }}%, {{ item.period }}개월
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 개월수 입력 모달 -->
+    <div v-if="showPeriodModal" class="modal-bg" @click.self="showPeriodModal = false">
+      <div class="modal-box">
+        <h3 class="modal-title">가입 기간 선택</h3>
+        <div class="period-input-section">
+          <input 
+            type="number" 
+            v-model="selectedPeriod" 
+            min="1" 
+            max="60" 
+            placeholder="가입 기간(개월)"
+            class="period-input"
+          >
+          <p class="period-hint">1~60개월 사이의 기간을 입력해주세요</p>
+        </div>
+        <div class="modal-btns">
+          <button @click="getAiRecommendation" class="modal-btn main" :disabled="!selectedPeriod">추천받기</button>
+          <button @click="showPeriodModal = false" class="modal-btn">취소</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -137,8 +162,9 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 const userData = ref(null)
-const showEditForm = ref(false)
-const fileInput = ref(null)
+const showEditModal = ref(false)
+const editPreviewImageUrl = ref('')
+const editImageFile = ref(null)
 const editForm = ref({
   nickname: '',
   age: 0,
@@ -146,6 +172,10 @@ const editForm = ref({
 })
 const favoriteProducts = ref([])
 const selectedProduct = ref(null)
+const aiLoading = ref(false)
+const aiRecommendResult = ref(null)
+const showPeriodModal = ref(false)
+const selectedPeriod = ref(null)
 
 const profileImageUrl = computed(() => {
   if (userData.value?.profile_image) {
@@ -157,42 +187,42 @@ const profileImageUrl = computed(() => {
   return '/default-profile.png'
 })
 
-// 파일 입력 트리거
-const triggerFileInput = () => {
-  fileInput.value.click()
+const openEditModal = () => {
+  showEditModal.value = true
+  editPreviewImageUrl.value = profileImageUrl.value
+  editImageFile.value = null
 }
 
-// 이미지 변경 처리
-const handleImageChange = async (event) => {
+const handleEditImageChange = (event) => {
   const file = event.target.files[0]
   if (!file) return
+  editImageFile.value = file
+  editPreviewImageUrl.value = URL.createObjectURL(file)
+}
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert('파일 크기는 5MB를 초과할 수 없습니다.')
-    return
-  }
-
-  if (!file.type.startsWith('image/')) {
-    alert('이미지 파일만 업로드할 수 있습니다.')
-    return
-  }
-
-  const formData = new FormData()
-  formData.append('profile_image', file)
-
+const updateProfile = async () => {
   try {
     const token = localStorage.getItem('token')
-    await axios.patch('http://localhost:8000/accounts/user/', formData, {
-      headers: {
-        'Authorization': `Token ${token}`,
-        'Content-Type': 'multipart/form-data'
-      }
+    // 1. 프로필 정보 업데이트
+    await axios.patch('http://localhost:8000/accounts/user/', editForm.value, {
+      headers: { Authorization: `Token ${token}` }
     })
+    // 2. 이미지가 있으면 이미지도 업로드
+    if (editImageFile.value) {
+      const formData = new FormData()
+      formData.append('profile_image', editImageFile.value)
+      await axios.patch('http://localhost:8000/accounts/user/', formData, {
+        headers: {
+          Authorization: `Token ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+    }
     await fetchUserData()
-    alert('프로필 이미지가 업데이트되었습니다.')
+    showEditModal.value = false
+    alert('프로필이 업데이트되었습니다.')
   } catch (error) {
-    console.error('Error details:', error.response?.data || error.message)
-    alert('프로필 이미지 업데이트에 실패했습니다.')
+    alert('프로필 업데이트에 실패했습니다.')
   }
 }
 
@@ -214,24 +244,6 @@ const fetchUserData = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch user data:', error)
-  }
-}
-
-// 프로필 업데이트
-const updateProfile = async () => {
-  try {
-    const token = localStorage.getItem('token')
-    await axios.patch('http://localhost:8000/accounts/user/', editForm.value, {
-      headers: {
-        Authorization: `Token ${token}`
-      }
-    })
-    await fetchUserData()
-    showEditForm.value = false
-    alert('프로필이 업데이트되었습니다.')
-  } catch (error) {
-    console.error('Failed to update profile:', error)
-    alert('프로필 업데이트에 실패했습니다.')
   }
 }
 
@@ -284,6 +296,29 @@ const showDetail = (product) => {
   selectedProduct.value = product
 }
 
+const getAiRecommendation = async () => {
+  if (!selectedPeriod.value) return
+  
+  aiLoading.value = true
+  aiRecommendResult.value = null
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.post('http://localhost:8000/deposits/ai-recommend/', {
+      age: userData.value.age,
+      salary: userData.value.salary,
+      period: selectedPeriod.value
+    }, {
+      headers: { Authorization: `Token ${token}` }
+    })
+    aiRecommendResult.value = response.data.recommendations
+    showPeriodModal.value = false
+  } catch (e) {
+    aiRecommendResult.value = [{ name: '추천 실패', bank: '', interestRate: '', period: '' }]
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchUserData()
   fetchFavorites()
@@ -301,87 +336,72 @@ onMounted(() => {
 }
 
 .profile-section {
+  display: flex;
+  gap: 2.5rem;
+  align-items: flex-start;
   margin-top: 2rem;
 }
 
-.profile-header {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.profile-image-section {
+.profile-left {
+  flex: 0 0 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  margin-right: 2rem;
 }
 
 .profile-image-container {
-  width: 120px;
-  height: 120px;
-}
-
-.profile-img {
-  width: 100%;
-  height: 100%;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #eee;
-}
-
-.image-edit-btn {
-  background-color: #2a388f;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 0.5rem;
-}
-
-.image-edit-btn:hover {
-  background-color: #1a287f;
-}
-
-.profile-info {
-  flex: 1;
-}
-
-.profile-info h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.profile-info p {
-  margin: 0.5rem 0;
-  color: #666;
-}
-
-.profile-details {
-  margin: 2rem 0;
-}
-
-.info-group {
+  overflow: hidden;
   margin-bottom: 1rem;
 }
 
-.info-group label {
-  display: block;
-  color: #666;
-  margin-bottom: 0.5rem;
+.profile-img-large {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 3px solid #eee;
 }
 
-.info-group p {
-  margin: 0;
+.profile-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+
+.profile-nickname {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.profile-info-list {
+  margin-bottom: 2.5rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.7rem;
   font-size: 1.1rem;
 }
 
-.action-buttons {
-  margin-top: 2rem;
+.info-row label {
+  width: 70px;
+  color: #666;
+  font-weight: 500;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  position: absolute;
+  right: 0;
+  bottom: 0;
 }
 
 .edit-btn {
@@ -395,60 +415,6 @@ onMounted(() => {
 
 .edit-btn:hover {
   background-color: #1a287f;
-}
-
-.edit-form {
-  margin-top: 2rem;
-  padding: 2rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.form-buttons {
-  margin-top: 1.5rem;
-  display: flex;
-  gap: 1rem;
-}
-
-.save-btn, .cancel-btn {
-  padding: 0.5rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.save-btn {
-  background-color: #2a388f;
-  color: white;
-}
-
-.save-btn:hover {
-  background-color: #1a287f;
-}
-
-.cancel-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background-color: #da190b;
 }
 
 .favorites-section {
@@ -466,54 +432,79 @@ onMounted(() => {
 
 .favorite-item {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 4px;
   border: 1px solid #eee;
+  position: relative;
 }
 
-.product-info h4 {
-  margin: 0 0 0.5rem 0;
+.product-info {
+  position: relative;
+  flex: 1;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.title-row h4 {
+  margin: 0;
   color: #2a388f;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.detail-btn, .remove-btn {
+  background: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.detail-btn {
+  color: #333;
+}
+
+.remove-btn {
+  color: #ff4d4d;
+}
+
+.detail-btn:hover {
+  color: #333;
+}
+
+.remove-btn:hover {
+  color: #ff0000;
+}
+
+.detail-btn i {
+  font-size: 1.1rem;
+}
+
+.remove-btn i {
+  font-size: 1.3rem;
 }
 
 .product-info p {
   margin: 0.25rem 0;
   color: #666;
-}
-
-.product-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.remove-btn,
-.detail-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.remove-btn {
-  background-color: #ff6b6b;
-  color: white;
-}
-
-.detail-btn {
-  background-color: #2a388f;
-  color: white;
-}
-
-.remove-btn:hover {
-  background-color: #ff5252;
-}
-
-.detail-btn:hover {
-  background-color: #1a287f;
 }
 
 .no-favorites {
@@ -570,5 +561,144 @@ onMounted(() => {
 
 .close-btn:hover {
   background-color: #5a6268;
+}
+
+.ai-recommend-section {
+  margin-top: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  text-align: center;
+}
+.ai-recommend-btn {
+  padding: 0.7rem 2rem;
+  background-color: #2a388f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+.ai-recommend-btn:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+}
+.ai-recommend-result {
+  margin-top: 1rem;
+  text-align: left;
+}
+.loading-spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  width: 100%;
+}
+.loading-spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #2a388f;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+.loading-text {
+  font-size: 1.1rem;
+  color: #2a388f;
+}
+.modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 2.5rem 2rem;
+  min-width: 350px;
+  max-width: 90vw;
+  text-align: center;
+}
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+.modal-btns {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+}
+.modal-btn {
+  padding: 0.6rem 2rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: #e0e0e0;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.modal-btn.main {
+  background: #2a388f;
+  color: #fff;
+}
+.modal-btn:hover {
+  background: #bdbdbd;
+}
+.modal-btn.main:hover {
+  background: #1a287f;
+}
+.profile-edit-img-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.profile-edit-img-section img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #eee;
+  margin-bottom: 0.7rem;
+}
+.period-input-section {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.period-input {
+  width: 200px;
+  padding: 0.8rem;
+  font-size: 1.1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.period-hint {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.modal-btn:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
 }
 </style> 
