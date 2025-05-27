@@ -48,6 +48,27 @@
       <div class="chart-section">
         <div class="chart-header">
           <h3>가격 추이</h3>
+          <div class="date-range-picker">
+            <div class="date-input">
+              <label>시작일:</label>
+              <input 
+                type="date" 
+                v-model="startDate"
+                :max="endDate"
+                @change="handleDateChange"
+              >
+            </div>
+            <div class="date-input">
+              <label>종료일:</label>
+              <input 
+                type="date" 
+                v-model="endDate"
+                :min="startDate"
+                :max="today"
+                @change="handleDateChange"
+              >
+            </div>
+          </div>
           <div class="period-selector">
             <button 
               v-for="period in periods" 
@@ -89,13 +110,21 @@
           <tbody>
             <tr v-for="(item, index) in sortedData" :key="item.date">
               <td>{{ formatDate(item.date) }}</td>
-              <td>{{ formatPrice(item.open_price) }}</td>
-              <td>{{ formatPrice(item.high_price) }}</td>
-              <td>{{ formatPrice(item.low_price) }}</td>
-              <td>{{ formatPrice(item.close_price) }}</td>
+              <td :class="getPriceChangeClass(item.open_price, index > 0 ? sortedData[index-1].open_price : item.open_price)">
+                {{ formatPrice(item.open_price) }}
+              </td>
+              <td :class="getPriceChangeClass(item.high_price, index > 0 ? sortedData[index-1].high_price : item.high_price)">
+                {{ formatPrice(item.high_price) }}
+              </td>
+              <td :class="getPriceChangeClass(item.low_price, index > 0 ? sortedData[index-1].low_price : item.low_price)">
+                {{ formatPrice(item.low_price) }}
+              </td>
+              <td :class="getPriceChangeClass(item.close_price, index > 0 ? sortedData[index-1].close_price : item.close_price)">
+                {{ formatPrice(item.close_price) }}
+              </td>
               <td>{{ formatVolume(item.volume) }}</td>
-              <td :class="getPriceChangeClass(item, index)">
-                {{ formatPercentage(getPriceChangePercent(item, index)) }}
+              <td :class="getPriceChangeClass(item.close_price, index > 0 ? sortedData[index-1].close_price : item.close_price)">
+                {{ formatDailyChange(item.close_price, index > 0 ? sortedData[index-1].close_price : item.close_price) }}
               </td>
             </tr>
           </tbody>
@@ -120,21 +149,119 @@ const selectedMetal = ref('GOLD')
 const selectedPeriod = ref('1M')
 const loading = ref(true)
 const priceData = ref([])
+const allData = ref([]) // 전체 데이터 저장
+const stockData = ref(null)
 const priceChart = ref(null)
 const volumeChart = ref(null)
 let priceChartInstance = null
 let volumeChartInstance = null
 let isChartInitialized = ref(false)
 
+// 날짜 관리
+const today = new Date().toISOString().split('T')[0]
+const startDate = ref('')  // 초기값을 비워둠
+const endDate = ref(today)
+
 // 기간 옵션
 const periods = [
+  { label: '1일', value: '1D' },
+  { label: '1주일', value: '1W' },
   { label: '1개월', value: '1M' },
   { label: '3개월', value: '3M' },
-  { label: '6개월', value: '6M' },
   { label: '1년', value: '1Y' }
 ]
 
-// 계산된 속성
+// 기간 선택 처리
+const changePeriod = (period) => {
+  selectedPeriod.value = period
+  
+  // 시작일을 Date 객체로 변환
+  let start
+  if (!startDate.value) {
+    // 시작일이 설정되지 않은 경우, 가장 오래된 데이터의 날짜 사용
+    const dates = allData.value.map(item => new Date(item.date))
+    start = new Date(Math.min(...dates))
+  } else {
+    start = new Date(startDate.value)
+  }
+  
+  let end = new Date(start)
+  
+  switch (period) {
+    case '1D':
+      end.setDate(start.getDate() + 1)
+      break
+    case '1W':
+      end.setDate(start.getDate() + 7)
+      break
+    case '1M':
+      end.setMonth(start.getMonth() + 1)
+      break
+    case '3M':
+      end.setMonth(start.getMonth() + 3)
+      break
+    case '1Y':
+      end.setFullYear(start.getFullYear() + 1)
+      break
+  }
+  
+  // 종료일이 오늘을 넘지 않도록 조정
+  const todayDate = new Date(today)
+  if (end > todayDate) {
+    end = todayDate
+  }
+  
+  startDate.value = start.toISOString().split('T')[0]
+  endDate.value = end.toISOString().split('T')[0]
+  updateFilteredData()
+}
+
+// 날짜 변경 처리
+const handleDateChange = () => {
+  selectedPeriod.value = 'custom'
+  
+  // 시작일이 종료일보다 늦으면 종료일을 시작일로 설정
+  if (startDate.value > endDate.value) {
+    endDate.value = startDate.value
+  }
+  
+  // 종료일이 오늘을 넘지 않도록 조정
+  if (endDate.value > today) {
+    endDate.value = today
+  }
+  
+  updateFilteredData()
+}
+
+// 필터링된 데이터 업데이트
+const updateFilteredData = () => {
+  console.log('Filtering data for period:', {
+    start: startDate.value,
+    end: endDate.value,
+    period: selectedPeriod.value
+  })
+  
+  if (!startDate.value) {
+    // 시작일이 설정되지 않은 경우 모든 데이터 표시
+    priceData.value = [...allData.value]
+    console.log('Showing all data:', priceData.value.length, 'items')
+  } else {
+    // 시작일이 설정된 경우 필터링
+    const filtered = allData.value.filter(item => {
+      const itemDate = new Date(item.date).toISOString().split('T')[0]
+      return itemDate >= startDate.value && itemDate <= endDate.value
+    })
+    priceData.value = filtered
+    console.log(`Filtered ${filtered.length} items from ${allData.value.length} total items`)
+  }
+
+  // nextTick을 사용하여 DOM 업데이트 후 차트 업데이트
+  nextTick(() => {
+    updateCharts()
+  })
+}
+
+// 정렬된 데이터 computed 속성
 const sortedData = computed(() => {
   return [...priceData.value].sort((a, b) => new Date(b.date) - new Date(a.date))
 })
@@ -204,49 +331,226 @@ const getPriceChangePercent = (item, index) => {
   return (change / previousPrice) * 100
 }
 
-const getPriceChangeClass = (item, index) => {
-  const change = getPriceChangePercent(item, index)
-  return {
-    'price-up': change > 0,
-    'price-down': change < 0,
-    'price-neutral': change === 0
-  }
+const getPriceChangeClass = (currentPrice, previousPrice) => {
+  if (currentPrice === previousPrice) return 'price-neutral'
+  return currentPrice > previousPrice ? 'price-up' : 'price-down'
+}
+
+const formatDailyChange = (currentPrice, previousPrice) => {
+  if (currentPrice === previousPrice) return '0.00%'
+  const change = ((currentPrice - previousPrice) / previousPrice) * 100
+  const prefix = change > 0 ? '+' : ''
+  return `${prefix}${change.toFixed(2)}%`
 }
 
 const changeMetal = async (metal) => {
+  console.log('Changing metal to:', metal)
   selectedMetal.value = metal
+  allData.value = [] // 메탈이 변경되면 데이터 초기화
   await fetchData()
 }
 
-const changePeriod = async (period) => {
-  selectedPeriod.value = period
-  await fetchData()
+const updateCharts = async () => {
+  if (!sortedData.value.length) {
+    console.warn('No data to display')
+    return
+  }
+
+  try {
+    // 차트 초기화 확인
+    const isInitialized = await initializeCharts()
+    if (!isInitialized) {
+      console.warn('Charts not initialized')
+      return
+    }
+
+    const chartData = sortedData.value.slice().reverse()
+    const dates = chartData.map(item => formatDate(item.date))
+    const prices = chartData.map(item => item.close_price)
+    const volumes = chartData.map(item => item.volume)
+
+    console.log('Chart data prepared:', {
+      dates: dates.length,
+      prices: prices.length,
+      volumes: volumes.length,
+      samplePrice: prices[0],
+      sampleDate: dates[0]
+    })
+
+    // 가격 차트 생성
+    priceChartInstance = new Chart(priceChart.value, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: `${selectedMetal.value === 'GOLD' ? '금' : '은'} 가격 (USD/oz)`,
+          data: prices,
+          borderColor: selectedMetal.value === 'GOLD' ? '#FFD700' : '#C0C0C0',
+          backgroundColor: 'rgba(255, 215, 0, 0.1)',
+          borderWidth: 2,
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: value => `$${formatPrice(value)}`
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: context => `$${formatPrice(context.parsed.y)}`
+            }
+          }
+        }
+      }
+    })
+
+    // 거래량 차트 생성
+    volumeChartInstance = new Chart(volumeChart.value, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: '거래량',
+          data: volumes,
+          backgroundColor: selectedMetal.value === 'GOLD' ? 'rgba(255, 215, 0, 0.6)' : 'rgba(192, 192, 192, 0.6)',
+          borderColor: selectedMetal.value === 'GOLD' ? '#FFD700' : '#C0C0C0',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: value => formatVolume(value)
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: context => formatVolume(context.parsed.y)
+            }
+          }
+        }
+      }
+    })
+
+    isChartInitialized.value = true
+    console.log('Charts updated successfully')
+  } catch (error) {
+    console.error('Error updating charts:', error)
+  }
 }
 
-const getPeriodDates = () => {
-  const end = new Date()
-  const start = new Date()
-  
-  switch (selectedPeriod.value) {
-    case '1M':
-      start.setMonth(start.getMonth() - 1)
-      break
-    case '3M':
-      start.setMonth(start.getMonth() - 3)
-      break
-    case '6M':
-      start.setMonth(start.getMonth() - 6)
-      break
-    case '1Y':
-      start.setFullYear(start.getFullYear() - 1)
-      break
-  }
-  
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0]
+// 데이터 로드 함수
+const fetchData = async () => {
+  loading.value = true
+  try {
+    let url = 'http://localhost:8000/metals/prices/'
+    const params = { metal_type: selectedMetal.value }
+    
+    console.log('Fetching metal data from:', url, 'with params:', params)
+    const response = await axios.get(url, { params })
+    console.log('Received metal data:', response.data)
+    
+    if (response.data && Array.isArray(response.data)) {
+      allData.value = response.data.map(item => ({
+        date: item.date,
+        open_price: parseFloat(item.open_price),
+        high_price: parseFloat(item.high_price),
+        low_price: parseFloat(item.low_price),
+        close_price: parseFloat(item.close_price),
+        volume: parseInt(item.volume || '0')
+      }))
+
+      // 데이터 로드 후 시작일을 가장 오래된 날짜로 설정
+      if (allData.value.length > 0) {
+        const dates = allData.value.map(item => item.date)
+        const oldestDate = new Date(Math.min(...dates.map(date => new Date(date))))
+        startDate.value = oldestDate.toISOString().split('T')[0]
+      }
+
+      console.log('Processed all data:', allData.value.length, 'items')
+      console.log('Date range:', { start: startDate.value, end: endDate.value })
+      updateFilteredData()
+    } else {
+      console.error('Invalid data format received:', response.data)
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    loading.value = false
   }
 }
+
+// 컴포넌트 마운트 시 실행
+onMounted(async () => {
+  try {
+    console.log('Component mounted, initializing...')
+    await nextTick()
+    await fetchData()
+  } catch (error) {
+    console.error('Error in component mount:', error)
+  }
+})
+
+// 메탈 변경 시 데이터 다시 로드
+watch(selectedMetal, async () => {
+  allData.value = [] // 메탈이 변경되면 데이터 초기화
+  await fetchData()
+})
 
 const initializeCharts = async () => {
   try {
@@ -275,136 +579,6 @@ const initializeCharts = async () => {
     return false
   }
 }
-
-const updateCharts = async () => {
-  if (!sortedData.value.length) {
-    console.warn('No data to display')
-    return
-  }
-
-  try {
-    // 차트 초기화 확인
-    const isInitialized = await initializeCharts()
-    if (!isInitialized) {
-      console.warn('Charts not initialized')
-      return
-    }
-
-    const dates = sortedData.value.map(item => formatDate(item.date)).reverse()
-    const prices = sortedData.value.map(item => item.close_price).reverse()
-    const volumes = sortedData.value.map(item => item.volume).reverse()
-
-    // 가격 차트 생성
-    priceChartInstance = new Chart(priceChart.value, {
-      type: 'line',
-      data: {
-        labels: dates,
-        datasets: [{
-          label: selectedMetal.value === 'GOLD' ? '금 가격' : '은 가격',
-          data: prices,
-          borderColor: selectedMetal.value === 'GOLD' ? '#FFD700' : '#C0C0C0',
-          backgroundColor: selectedMetal.value === 'GOLD' ? '#FFD700' : '#C0C0C0',
-          tension: 0.1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            ticks: {
-              callback: value => `$${formatPrice(value)}`
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: context => `$${formatPrice(context.parsed.y)}`
-            }
-          }
-        }
-      }
-    })
-
-    // 거래량 차트 생성
-    volumeChartInstance = new Chart(volumeChart.value, {
-      type: 'bar',
-      data: {
-        labels: dates,
-        datasets: [{
-          label: '거래량',
-          data: volumes,
-          backgroundColor: selectedMetal.value === 'GOLD' ? '#FFD700' : '#C0C0C0'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: value => formatVolume(value)
-            }
-          }
-        }
-      }
-    })
-
-    isChartInitialized.value = true
-  } catch (error) {
-    console.error('Error updating charts:', error)
-  }
-}
-
-const fetchData = async () => {
-  loading.value = true
-  try {
-    const response = await axios.get('http://localhost:8000/metals/prices/', {
-      params: { metal_type: selectedMetal.value }
-    })
-    
-    if (response.data && Array.isArray(response.data)) {
-      priceData.value = response.data.map(item => ({
-        ...item,
-        open_price: parseFloat(item.open_price),
-        high_price: parseFloat(item.high_price),
-        low_price: parseFloat(item.low_price),
-        close_price: parseFloat(item.close_price),
-        volume: parseInt(item.volume)
-      }))
-
-      // DOM이 업데이트된 후 차트 업데이트
-      await nextTick()
-      await updateCharts()
-    }
-  } catch (error) {
-    console.error('Error fetching data:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 감시자
-watch([selectedMetal, selectedPeriod], async () => {
-  await fetchData()
-})
-
-// 컴포넌트 마운트 시 실행
-onMounted(async () => {
-  try {
-    await nextTick()
-    await fetchData()
-  } catch (error) {
-    console.error('Error in component mount:', error)
-  }
-})
 </script>
 
 <style scoped>
@@ -523,12 +697,33 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.chart-header h3 {
-  font-size: 1.2rem;
-  color: #333;
-  margin: 0;
+.date-range-picker {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+.date-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-input label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.date-input input {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
 }
 
 .period-selector {
@@ -562,27 +757,45 @@ onMounted(async () => {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
+  margin-top: 2rem;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.9rem;
 }
 
 th, td {
   padding: 0.75rem;
   text-align: right;
   border-bottom: 1px solid #eee;
+  white-space: nowrap;
 }
 
 th:first-child, td:first-child {
   text-align: left;
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 1;
 }
 
 th {
   background: #f8f9fa;
   font-weight: bold;
   color: #333;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+th:first-child {
+  z-index: 3;
+}
+
+tbody tr:hover {
+  background-color: #f8f9fa;
 }
 
 .loading {

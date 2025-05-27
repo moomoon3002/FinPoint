@@ -5,7 +5,7 @@ import SignUp from '../components/signup.vue'
 import MyPage from '../components/MyPage.vue'
 import DepositCompare from '../components/depositcompare.vue'
 import SpotCompare from '../components/SpotCompare.vue'
-import StockVoice from '../components/StockVoice.vue'
+import StockVoiceAnalysis from '../components/StockVoiceAnalysis.vue'
 import Board from '../components/Board.vue'
 import BoardDetail from '../components/BoardDetail.vue'
 import BoardWrite from '../components/BoardWrite.vue'
@@ -19,7 +19,7 @@ const routes = [
   { path: '/mypage', component: MyPage },
   { path: '/deposit', name: 'Deposit', component: DepositCompare },
   { path: '/spot', name: 'Spot', component: SpotCompare },
-  { path: '/stock-voice', name: 'StockVoice', component: StockVoice },
+  { path: '/stock-voice', name: 'StockVoice', component: StockVoiceAnalysis },
   { path: '/bank-finder', name: 'BankFinder', component: BankFinder },
   { path: '/board', name: 'Board', component: Board },
   { path: '/board/:id', name: 'BoardDetail', component: BoardDetail },

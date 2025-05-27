@@ -74,12 +74,10 @@
           </div>
           <div class="col product">{{ product.name }}</div>
           <div class="col interest">
-            <strong>{{ product.interestRate }}%</strong>
-            <span class="sub-text">이자율</span>
+            <strong>{{ product.interestRate }}%</strong><span class="sub-text">이자율</span>
           </div>
           <div class="col period">
-            <strong>{{ product.period }}</strong>
-            <span class="sub-text">개월수</span>
+            <spans style="font-size: medium; color: #666;">{{ product.period}}개월</spans>
           </div>
           <div class="col action">
             <button @click="showDetail(product)" class="detail-btn">자세히보기</button>

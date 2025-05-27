@@ -1,269 +1,103 @@
-<template>
-  <div class="bank-finder">
-    <div class="search-container">
-      <div class="filter-section">
-        <select v-model="selectedBankType" class="filter-select">
-          <option value="">은행 종류 선택</option>
-          <option value="국민은행">국민은행</option>
-          <option value="신한은행">신한은행</option>
-          <option value="우리은행">우리은행</option>
-          <option value="하나은행">하나은행</option>
-          <option value="농협은행">농협은행</option>
-          <option value="기업은행">기업은행</option>
-          <option value="새마을금고">새마을금고</option>
-          <option value="신협">신협</option>
-        </select>
-        <select v-model="selectedCity" class="filter-select">
-          <option value="">시/도 선택</option>
-          <option value="서울특별시">서울특별시</option>
-          <option value="부산광역시">부산광역시</option>
-          <option value="대구광역시">대구광역시</option>
-          <option value="인천광역시">인천광역시</option>
-          <option value="광주광역시">광주광역시</option>
-          <option value="대전광역시">대전광역시</option>
-          <option value="울산광역시">울산광역시</option>
-          <option value="세종특별자치시">세종특별자치시</option>
-          <option value="경기도">경기도</option>
-          <option value="강원도">강원도</option>
-          <option value="충청북도">충청북도</option>
-          <option value="충청남도">충청남도</option>
-          <option value="전라북도">전라북도</option>
-          <option value="전라남도">전라남도</option>
-          <option value="경상북도">경상북도</option>
-          <option value="경상남도">경상남도</option>
-          <option value="제주특별자치도">제주특별자치도</option>
-        </select>
-      </div>
-      <div class="search-section">
-        <input
-          v-model="searchKeyword"
-          @keyup.enter="searchBanks"
-          placeholder="은행명을 입력하세요"
-          class="search-input"
-        />
-        <button @click="searchBanks" class="search-button">검색</button>
-        <button @click="findNearbyBanks" class="nearby-button">주변 검색</button>
-      </div>
-    </div>
+from django.core.management.base import BaseCommand
+import requests
+import os
+from dotenv import load_dotenv
+from deposits.models import DepositProduct, DepositOption
 
-    <div id="map" class="map-container"></div>
+# .env 파일 로드
+load_dotenv()
 
-    <ul v-if="banks.length" class="bank-list">
-      <li
-        v-for="bank in banks"
-        :key="bank.id"
-        class="bank-item"
-        @click="selectBank(bank)"
-      >
-        <h4>{{ bank.place_name }}</h4>
-        <p>{{ bank.address_name }}</p>
-        <p>{{ bank.phone || '전화번호 없음' }}</p>
-        <span class="bank-distance" v-if="bank.distance">
-          {{ formatDistance(bank.distance) }}
-        </span>
-      </li>
-    </ul>
-  </div>
-</template>
+# 환경 변수에서 API 키 가져오기
+API_KEY = os.getenv('BANK_API_KEY')
 
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-
-// 상태 관리
-const searchKeyword = ref('')
-const selectedBankType = ref('')
-const selectedCity = ref('')
-const banks = ref([])
-const map = ref(null)
-const markers = ref([])
-const infowindow = ref(null)
-const ps = ref(null)
-const isMapReady = ref(false)
-
-// .env에서 VITE_ 접두사로 읽어 옵니다.
-const KAKAO_MAP_API_KEY = import.meta.env.VITE_KAKAO_MAP_API_KEY
-
-// Kakao SDK 동적 로드
-function loadKakaoSDK() {
-  return new Promise((resolve, reject) => {
-    if (!KAKAO_MAP_API_KEY) {
-      return reject(new Error('카카오맵 JS 키가 없습니다. .env 파일을 확인하세요.'))
-    }
-
-    // 이미 로드된 경우
-    if (window.kakao && window.kakao.maps) {
-      return resolve()
-    }
-
-    console.log('🔑 Kakao JS Key:', KAKAO_MAP_API_KEY)
-
-    const script = document.createElement('script')
-    // 반드시 https:// 를 명시해야 https 요청으로 보냅니다.
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&libraries=services`
-    script.async = true
-
-    script.onload = () => {
-      console.log('카카오맵 SDK 스크립트 로드 완료')
-      resolve()
-    }
-
-    script.onerror = () => {
-      reject(new Error('카카오맵 SDK 로드 실패 (401/403 확인 필요)'))
-    }
-
-    document.head.appendChild(script)
-  })
+BASE_URLS = {
+    '예금': 'https://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json',
+    '적금': 'https://finlife.fss.or.kr/finlifeapi/savingProductsSearch.json',
 }
 
-// 지도 초기화
-function initMap() {
-  const el = document.getElementById('map')
-  if (!el || !window.kakao || !window.kakao.maps) {
-    throw new Error('지도 초기화 불가: SDK 준비 확인 필요')
-  }
-
-  map.value = new window.kakao.maps.Map(el, {
-    center: new window.kakao.maps.LatLng(37.5665, 126.9780),
-    level: 5,
-  })
-  infowindow.value = new window.kakao.maps.InfoWindow({ zIndex: 1 })
-  ps.value = new window.kakao.maps.services.Places()
-  isMapReady.value = true
-
-  console.log('지도 초기화 완료')
+FIN_GROUPS = {
+    '은행': '020000',
+    '저축은행': '030300',
 }
 
-// 마커 생성 헬퍼
-function createMarker(place) {
-  if (!isMapReady.value) return null
-  const pos = new window.kakao.maps.LatLng(place.y, place.x)
-  const marker = new window.kakao.maps.Marker({ map: map.value, position: pos })
-  window.kakao.maps.event.addListener(marker, 'click', () => {
-    infowindow.value.setContent(
-      `<div style="padding:5px;font-size:12px;">
-         <strong>${place.place_name}</strong><br>
-         ${place.address_name}
-       </div>`
-    )
-    infowindow.value.open(map.value, marker)
-  })
-  return marker
-}
 
-// 기존 마커/윈도우 삭제
-function clearMarkers() {
-  markers.value.forEach(m => m.setMap(null))
-  markers.value = []
-  infowindow.value && infowindow.value.close()
-}
+class Command(BaseCommand):
+    help = '은행/저축은행의 예금/적금 데이터를 금융감독원 API에서 수집하여 DB에 저장합니다.'
 
-// 거리 포맷
-function formatDistance(d) {
-  return d < 1000 ? `${d}m` : `${(d/1000).toFixed(1)}km`
-}
+    def handle(self, *args, **kwargs):
+        if not API_KEY:
+            self.stderr.write(self.style.ERROR('ERROR: BANK_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.'))
+            return
 
-// 키워드 검색
-function searchBanks() {
-  if (!isMapReady.value) return
-  let keyword = selectedBankType.value || searchKeyword.value.trim() || '은행'
-  if (selectedCity.value) keyword += ` ${selectedCity.value}`
+        for product_type, url in BASE_URLS.items():
+            for group_name, fin_group in FIN_GROUPS.items():
+                self.fetch_and_save(
+                    url=url,
+                    product_type=product_type,
+                    fin_group=fin_group,
+                    group_name=group_name
+                )
 
-  ps.value.keywordSearch(keyword, (data, status) => {
-    if (status === window.kakao.maps.services.Status.OK) {
-      clearMarkers()
-      banks.value = data
-      if (data.length) {
-        map.value.setCenter(new window.kakao.maps.LatLng(data[0].y, data[0].x))
-        map.value.setLevel(4)
-        data.forEach(p => {
-          const mk = createMarker(p)
-          if (mk) markers.value.push(mk)
-        })
-      }
-    } else {
-      alert('검색 오류: ' + status)
-    }
-  })
-}
+    def fetch_and_save(self, url, product_type, fin_group, group_name):
+        full_url = f"{url}?auth={API_KEY}&topFinGrpNo={fin_group}&pageNo=1"
+        res = requests.get(full_url)
 
-// 주변 은행 검색 (현재 위치 기반)
-function findNearbyBanks() {
-  if (!isMapReady.value || !navigator.geolocation) {
-    alert('위치 권한이 필요합니다.')
-    return
-  }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const loc = new window.kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude)
-      map.value.setCenter(loc)
-      map.value.setLevel(3)
-      clearMarkers()
-      banks.value = []
+        if res.status_code != 200:
+            self.stderr.write(f"[ERROR] {group_name} {product_type} 요청 실패: {res.status_code}")
+            return
 
-      ps.value.categorySearch(
-        'BK9',
-        (data, status) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            data.forEach(p => {
-              const mk = createMarker(p)
-              if (mk) markers.value.push(mk)
-              banks.value.push(p)
-            })
-          } else {
-            alert('주변 검색 실패: ' + status)
-          }
-        },
-        { location: loc, radius: 5000, sort: window.kakao.maps.services.SortBy.DISTANCE }
-      )
-    },
-    () => {
-      alert('위치 정보를 가져올 수 없습니다.')
-    }
-  )
-}
+        data = res.json()
+        base_list = data.get('result', {}).get('baseList', [])
+        option_list = data.get('result', {}).get('optionList', [])
 
-// 리스트 클릭 시 해당 마커 열기
-function selectBank(bank) {
-  const pos = new window.kakao.maps.LatLng(bank.y, bank.x)
-  map.value.setCenter(pos)
-  map.value.setLevel(2)
-  markers.value.forEach(m => {
-    if (m.getPosition().equals(pos)) {
-      window.kakao.maps.event.trigger(m, 'click')
-    }
-  })
-}
+        for item in base_list:
+            try:
+                DepositProduct.objects.update_or_create(
+                    deposit_ID=item.get('fin_prdt_cd'),
+                    defaults={
+                        'product_type': product_type,
+                        'dcls_month': item.get('dcls_month') or '',
+                        'fin_co_no': item.get('fin_co_no') or '',
+                        'kor_co_nm': item.get('kor_co_nm') or '',
+                        'fin_prdt_nm': item.get('fin_prdt_nm') or '',
+                        'join_way': item.get('join_way') or '',
+                        'mtrt_int': item.get('mtrt_int') or '',
+                        'spcl_cnd': item.get('spcl_cnd') or '',
+                        'join_deny': item.get('join_deny') or '',
+                        'join_member': item.get('join_member') or '',
+                        'etc_note': item.get('etc_note') or '',
+                        'max_limit': item.get('max_limit') if item.get('max_limit') not in [None, ''] else None,
+                        'dcls_strt_day': item.get('dcls_strt_day') or '',
+                        'dcls_end_day': item.get('dcls_end_day') or '',
+                        'fin_co_subm_day': item.get('fin_co_subm_day') or '',
+                    }
+                )
+            except Exception as e:
+                self.stderr.write(f"[ERROR] 상품 저장 실패 ({item.get('fin_prdt_cd')}): {str(e)}")
+                continue
 
-onMounted(async () => {
-  try {
-    console.log('카카오맵 초기화 시작...')
-    await loadKakaoSDK()
-    initMap()
-  } catch (err) {
-    console.error('카카오맵 초기화 실패:', err)
-    alert(`카카오맵 초기화 실패: ${err.message}\n키와 도메인 설정을 확인해주세요.`)
-  }
-})
+        for opt in option_list:
+            try:
+                product = DepositProduct.objects.filter(deposit_ID=opt.get('fin_prdt_cd')).first()
+                if not product:
+                    continue
 
-onUnmounted(() => {
-  clearMarkers()
-  isMapReady.value = false
-})
-</script>
+                DepositOption.objects.update_or_create(
+                    deposit=product,
+                    save_trm=opt.get('save_trm') or '',
+                    intr_rate_type=opt.get('intr_rate_type') or '',
+                    defaults={
+                        'intr_rate_type_nm': opt.get('intr_rate_type_nm') or '',
+                        'rsrv_type': opt.get('rsrv_type') or '',
+                        'rsrv_type_nm': opt.get('rsrv_type_nm') or '',
+                        'intr_rate': opt.get('intr_rate') if opt.get('intr_rate') not in [None, ''] else None,
+                        'intr_rate2': opt.get('intr_rate2') if opt.get('intr_rate2') not in [None, ''] else None,
+                    }
+                )
+            except Exception as e:
+                self.stderr.write(f"[ERROR] 옵션 저장 실패 ({opt.get('fin_prdt_cd')}): {str(e)}")
+                continue
 
-<style scoped>
-.bank-finder { padding: 20px; display: flex; flex-direction: column; height: 100vh; }
-.search-container { display: flex; gap: 10px; margin-bottom: 10px; }
-.filter-section { display: flex; gap: 10px; }
-.filter-select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-.search-section { display: flex; gap: 10px; }
-.search-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-.search-button,
-.nearby-button { padding: 8px 12px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer; }
-.nearby-button { background: #28a745; }
-.map-container { flex: 1; margin-bottom: 10px; border-radius: 4px; overflow: hidden; }
-.bank-list { max-height: 200px; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
-.bank-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-.bank-item:hover { background: #f9f9f9; }
-.bank-distance { color: #28a745; margin-top: 4px; display: block; }
-</style>
+        self.stdout.write(self.style.SUCCESS(
+            f"[SUCCESS] {group_name} {product_type} - 상품 {len(base_list)}건, 옵션 {len(option_list)}건 적재 완료"
+        ))

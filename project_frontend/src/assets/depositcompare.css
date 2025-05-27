@@ -1,13 +1,8 @@
-.deposit-compare-wrapper {
-  background: #e9edf7;
-  min-height: 100vh;
-  padding: 48px 0;
-}
 
 .deposit-compare-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  background: #f6f6fa;
+  background: #fff;
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.06);
   padding: 40px 32px 56px 32px;
@@ -97,16 +92,17 @@
 }
 
 .detail-btn {
-  background: #2a388c;
-  color: #fff;
+  padding: 0.5rem 1.2rem;
+  background-color: #2a388f;
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 10px 28px;
-  font-weight: 600;
+  border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
   font-size: 1rem;
   transition: background 0.2s;
 }
+
 .detail-btn:hover {
   background: #1a276c;
 }
