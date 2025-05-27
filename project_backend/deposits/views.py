@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters import rest_framework as filters
 from .models import DepositProduct, DepositOption, FavoriteDeposit
 from .serializers import DepositProductSerializer, DepositOptionSerializer, FavoriteDepositSerializer
@@ -20,6 +20,7 @@ class DepositProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DepositProduct.objects.all().prefetch_related('options')
     serializer_class = DepositProductSerializer
     filterset_class = DepositProductFilter
+    permission_classes = [AllowAny]
 
     @action(detail=True, methods=['get'])
     def options(self, request, pk=None):
