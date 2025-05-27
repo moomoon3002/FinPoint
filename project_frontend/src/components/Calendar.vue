@@ -10,7 +10,7 @@
           <button class="nav-btn" @click="previousMonth">&lt;</button>
           <h2>{{ currentYear }}년 {{ currentMonth + 1 }}월</h2>
           <button class="nav-btn" @click="nextMonth">&gt;</button>
-          <button class="today-btn" @click="goToToday">오늘</button>
+          <button class="today-btn" @click="goToToday">TODAY</button>
         </div>
 
         <div class="calendar-grid">
@@ -273,15 +273,18 @@ onMounted(() => {
   position: absolute;
   right: 0;
   padding: 0.5rem 1rem;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
+  background-color: white;
+  color: #2a388f;
+  border: 1px solid #2a388f;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: bold;
 }
 
 .today-btn:hover {
-  background-color: #45a049;
+  background-color: #2a388f;
+  color: white;
 }
 
 .calendar-grid {
